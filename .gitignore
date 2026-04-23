@@ -1,0 +1,9 @@
+# diretórios
+/node_modules
+/dist
+/build
+/.vscode
+
+# arquivos
+*.exe
+*.env
