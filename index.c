@@ -4,6 +4,7 @@
 #include "cmd.h"
 
 char* supplier = NULL;
+Status s;
 
 Command parse_cmd(char* cmd_str) {
     if (strcmp(cmd_str, "add") == 0) return CMD_ADD;
@@ -36,5 +37,5 @@ int main(int argc, char *argv[]) {
     #undef X;
     
     free(supplier);
-    return 0;
+    return s;
 }

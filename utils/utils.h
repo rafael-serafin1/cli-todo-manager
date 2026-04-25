@@ -37,7 +37,7 @@ char ask() {
     return c;
 }
 
-void configurar_locale(void) {
+void configurar_locale() {
     #if defined(_WIN32)
     system("chcp 65001 > nul");
     #endif
@@ -60,4 +60,5 @@ void configurar_locale(void) {
     }
     printf("Aviso: Locale não pôde ser configurado.\n");
     free(locais);
+    return;
 }

@@ -19,13 +19,13 @@ Status build(char* file_local);
 Status error_handle(void);
 
 // tabela com string, função e adicional
-#define CQL_COMMANDS                                            \
-    X(CMD_VERSION, version(), PRINTNEWLINE())                   \
-    X(CMD_HELP, help(), PRINTNEWLINE())                         \
-    X(CMD_ADD, add_todo(supplier), supplier = argv[2])          \
-    X(CMD_REMOVE, remove_todo(supplier), supplier = argv[2])    \
-    X(CMD_LIST, list_todo(), PRINTNEWLINE())                    \
-    X(CMD_ERROR, error_handle(), PRINTNEWLINE())                \
+#define CQL_COMMANDS                                                \
+    X(CMD_VERSION, s = version(), PRINTNEWLINE())                   \
+    X(CMD_HELP, s = help(), PRINTNEWLINE())                         \
+    X(CMD_ADD, s = add_todo(supplier), supplier = argv[2])          \
+    X(CMD_REMOVE, s = remove_todo(supplier), supplier = argv[2])    \
+    X(CMD_LIST, s = list_todo(), PRINTNEWLINE())                    \
+    X(CMD_ERROR, s = error_handle(), PRINTNEWLINE())                \
 
 // define um enum através da coluna 'string' tabela
 #define X(string, function, additional) string,
