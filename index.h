@@ -1,4 +1,5 @@
 #pragma once
+
 #include "macros.h"
 #include "utils.h"
 
@@ -12,11 +13,11 @@ Status _todo_help(list todo) {
 }
 
 Status _todo_version() {
-    printf("%s\n", __TODO_VERSION);
+    message(MSG_INFO, "Todofile version: \'%s\'", __TODO_VERSION);
     return SUCCESS;
 }
 
-Status _todo_config() {
+Status _todo_config(list flags) {
     return SUCCESS;
 }
 
@@ -29,10 +30,6 @@ Status _todo_remove(string todo) {
 }
 
 Status _todo_check(string todo) {
-    return SUCCESS;
-}
-
-Status _todo_uncheck(string todo) {
     return SUCCESS;
 }
 

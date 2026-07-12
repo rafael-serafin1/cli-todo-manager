@@ -2,7 +2,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <stdarg.h>
-
+#include <locale.h>
 
 typedef enum status {
     SUCCESS = 0,
@@ -91,4 +91,30 @@ void message(MessageType type, const char *fmt, ...)
     va_end(args);
 
     printf("%s\n", ANSI_RESET);
+}
+
+/// @brief configura localização atual
+/// @param void
+void configurar_locale(void) {
+    #if defined(_WIN32)
+    system("chcp 65001 > nul");
+    #endif
+
+    const char *locais[] = {
+        "pt_BR.UTF-16",
+        "pt_BR.utf16",
+        "Portuguese_Brazil.1252",
+        "Portuguese",
+        ""
+    };
+    register int i; 
+    for (i = 0; i < 5; i++) {
+        const char *r = setlocale(LC_ALL, locais[i]);
+        if (r != NULL) {
+            printf("Locale ativo: %s\n", r);
+            return;
+        }
+        free((void *) r);
+    }
+    printf("Aviso: Locale não pôde ser configurado.\n");
 }

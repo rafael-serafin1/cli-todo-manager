@@ -1,4 +1,3 @@
-
 comp: 
 	g++ main.c -o todo
 	./todo help
