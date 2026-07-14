@@ -1,0 +1,69 @@
+<svg xmlns="http://www.w3.org/2000/svg"
+     width="256"
+     height="256"
+     viewBox="0 0 256 256">
+
+    <!-- Documento -->
+    <path fill="#88E788"
+          d="M48 16h112l48 48v160c0 8.8-7.2 16-16 16H48c-8.8 0-16-7.2-16-16V32c0-8.8 7.2-16 16-16z"/>
+
+    <!-- Dobra -->
+    <path fill="#22C55E"
+          d="M160 16v48h48z"/>
+
+    <!-- Prompt -->
+    <path fill="#FFFFFF"
+      d="M60 36l16 16-16 16-5-4 12-12-12-12zm24 22h18v6H84z"/>
+
+    <!-- Check -->
+    <rect x="58" y="92" width="18" height="18" rx="3"
+          fill="none" stroke="#3FB950" stroke-width="3"/>
+
+    <path d="M63 101l4 4 8-9"
+          fill="none"
+          stroke="#3FB950"
+          stroke-width="3"
+          stroke-linecap="round"
+          stroke-linejoin="round"/>
+
+    <rect x="90" y="96" width="70" height="4" rx="2" fill="#9A9A9A"/>
+    <rect x="90" y="106" width="50" height="4" rx="2" fill="#666"/>
+
+    <!-- Em progresso -->
+    <rect x="58" y="128" width="18" height="18" rx="3"
+          fill="none" stroke="#D29922" stroke-width="3"/>
+
+    <rect x="63" y="136" width="8" height="3" rx="1.5"
+          fill="#D29922"/>
+
+    <rect x="90" y="132" width="80" height="4" rx="2" fill="#9A9A9A"/>
+    <rect x="90" y="142" width="60" height="4" rx="2" fill="#666"/>
+
+    <!-- Cancelada -->
+    <rect x="58" y="164" width="18" height="18" rx="3"
+          fill="none" stroke="#F85149" stroke-width="3"/>
+
+    <path d="M63 169l8 8M71 169l-8 8"
+          fill="none"
+          stroke="#F85149"
+          stroke-width="3"
+          stroke-linecap="round"/>
+
+    <rect x="90" y="168" width="74" height="4" rx="2" fill="#9A9A9A"/>
+    <rect x="90" y="178" width="46" height="4" rx="2" fill="#666"/>
+
+    <!-- Separador -->
+    <rect x="32" y="204" width="176" height="2" fill="#10B981"/>
+
+    <!-- Nome -->
+    <text x="120"
+          y="230"
+          text-anchor="middle"
+          font-family="Consolas, Menlo, monospace"
+          font-size="22"
+          font-weight="700"
+          fill="#FFFFFF">
+        TODOFILE
+    </text>
+
+</svg>

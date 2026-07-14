@@ -123,3 +123,18 @@ void configurar_locale(void) {
     }
     printf("Aviso: Locale não pôde ser configurado.\n");
 }
+
+int flag_prefix(const char* _arg) {
+    if (_arg == NULL)
+        return 0;
+
+    if (_arg[0] == '-') {
+        if (_arg[1] == '-')  
+            return 1;
+
+        if (_arg[1] != '\0') 
+            return 1;
+    }
+
+    return 0;
+}

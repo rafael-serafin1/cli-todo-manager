@@ -2,8 +2,12 @@
 
 #include "macros.h"
 #include "utils/utils.h"
+#include "main/parse.h"
 
 extern Status all_files(void);
+extern int master(CLI cli);
+extern Status todofile_add_task(const char *task);
+extern CLI *cli;
 
 Status _todo_help(list todo) {
     message(MSG_INFO, "All commands avaliable to usage (todo <COMMAND>):");
@@ -32,12 +36,15 @@ Status _todo_init(char **argv) {
     return SUCCESS;
 }
 
-Status _todo_config(list flags) {
+Status _todo_config() {
+    int exit = master(*cli);
+    if (exit != 0) 
+        return FAILURE;
     return SUCCESS;
 }
 
 Status _todo_add(string todo) {
-    return SUCCESS;
+    return todofile_add_task(todo);
 }
 
 Status _todo_remove(string todo) {

@@ -1,10 +1,11 @@
-FILES = main.c files/configure.c utils/utils.c main/parse.c index.c
+FILES = main.c files/configure.c utils/utils.c main/parse.c index.c files/todofile.c files/count.c files/config.c
+FILE = main.c
 
 comp: 
 	g++ $(FILES) -o todo
 
 expd:
-	g++ -E $(FILES) -o expanded.i
+	g++ -E $(FILE) -o expanded.i
 
 sep:
 	g++ -c main.c

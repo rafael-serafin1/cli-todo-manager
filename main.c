@@ -26,10 +26,6 @@ int main(int argc, char **argv) {
 
     message(MSG_DEBUG, "CLI -- Command: %s | Flags: %s", cli->command, cli->flags->item);
 
-    int exit = 0;
-    if (strcmp(cli->command, "config") == 0)
-        exit = master(*cli);   
-
     free(cli);
-    return exit;
+    return 0;
 }

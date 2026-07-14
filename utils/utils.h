@@ -28,6 +28,7 @@ void add_to_list(list L, const char *flag);
 size_t list_items_count(list L);
 void message(MessageType type, const char *fmt, ...);
 void configurar_locale(void);
+int flag_prefix(const char* _arg); 
 
 #endif
 

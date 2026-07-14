@@ -2,86 +2,22 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#include "config.h"
+#ifndef COUNT_H
+#define COUNT_H
+
 #include "../utils/utils.h"
+#define COUNTER_FILE ".todo\\config\\count.bin\0"
 
 #define integer sizeof(int)
 
-int counter = 0;
-int *global = &counter;
-int final_count = 0;
+extern int counter;
+extern int* global;
+extern int final_count;
 
-void create_counter_file() {
-    FILE *cf = fopen(COUNTER_FILE, "wb");
+void create_counter_file();
+int read_counter_file();
+int verify_counter_file();
+void increment_counter_file();
+void reset_counter_file();
 
-    fwrite(global, integer, 1, cf);
-
-    fclose(cf);
-}
-
-/// @brief Reads counter file 
-/// @return negative number if 'failed otherwise an positive number
-int read_counter_file() {
-start:
-    FILE *f = fopen(COUNTER_FILE, "rb");
-    
-    if (f == NULL) {
-        fclose(f);
-        create_counter_file();
-        goto start;
-    }
-
-    char buffer[2];
-    fread(buffer, sizeof(buffer), 1, f);
-
-    int repo = (int) buffer[0];
-
-    message(MSG_INFO, "Actual value storaged: \'%d\'", repo);
-
-    fclose(f);
-    return repo;
-}
-
-int verify_counter_file() {
-start:
-    FILE *f = fopen(COUNTER_FILE, "rb");
-    int repo;
-
-    if (f = NULL)
-        repo = -1;
-    else 
-        repo = 0;    
-    fclose(f);
-
-    if (repo == 0)
-        repo = read_counter_file();
-    else {
-        create_counter_file();
-        goto start;
-    }
-
-    message(MSG_DEBUG, "Incremented value: \'%d\'", (repo + 1));
-    return repo;
-}
-
-void increment_counter_file() {
-    counter = verify_counter_file();
-    FILE *cf = fopen(COUNTER_FILE, "wb");
-
-    ++counter;
-    fwrite(global, sizeof(int), 1, cf);
-
-    fclose(cf);
-}
-
-void reset_counter_file() {
-    final_count = counter;
-    counter = 0;
-    FILE *cf = fopen(COUNTER_FILE, "wb");
-
-    fwrite(global, integer, 1, cf);
-
-    fclose(cf);
-    message(MSG_DEBUG, "Final count: \'%d\'", final_count);
-    return;
-}
+#endif

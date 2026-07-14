@@ -1,11 +1,14 @@
 #include "count.h"
 #include "config.h"
 #include "macros.h"
-#include "todofile.h"
 
 #include "../main/parse.h"
 
 #define CONFIGURE _configure_file(argv[1])
+
+extern __todo_config read_config_file();
+extern void create_todofile();
+extern void create_todofile_inPath(const char *_Path);
 
 Status all_files() {
     create_config_file();
