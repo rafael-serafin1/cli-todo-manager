@@ -20,5 +20,6 @@ extern CLI *cli;
 
 Status parse_flags(int argc, char **argv);
 Status parse_command(int argc, char **argv);
+int parse_index(const char *_arg);
 
 #endif

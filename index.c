@@ -7,6 +7,7 @@
 extern Status all_files(void);
 extern int master(CLI cli);
 extern Status todofile_add_task(const char *task);
+extern Status todofile_remove_task(const int _index);
 extern CLI *cli;
 
 Status _todo_help(list todo) {
@@ -47,8 +48,8 @@ Status _todo_add(string todo) {
     return todofile_add_task(todo);
 }
 
-Status _todo_remove(string todo) {
-    return SUCCESS;
+Status _todo_remove(int index) {
+    return todofile_remove_task(index);
 }
 
 Status _todo_check(string todo) {

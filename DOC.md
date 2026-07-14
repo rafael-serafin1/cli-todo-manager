@@ -19,7 +19,7 @@ todo add "<TASK>"     # adds a task to Todofile, aways use " "
 
 - To remove a task (not recomended): 
 ```bash
-todo remove <INDEX>     # removes a task by index
+todo remove "<INDEX>"     # removes a task by index, aways use " "
 ```
 
 - To list all tasks:

@@ -11,7 +11,7 @@ Status _todo_version();
 Status _todo_init(char **argv);
 Status _todo_config();
 Status _todo_add(string todo);
-Status _todo_remove(string todo);
+Status _todo_remove(const int index);
 Status _todo_check(string todo);
 Status _todo_uncheck(string todo);
 Status _todo_list();
@@ -34,7 +34,7 @@ Status _todo_list();
     X("init", _todo_init(argv))         \
     X("config", _todo_config())         \
     X("add", _todo_add(task))           \
-    X("remove", _todo_remove(task))     \
+    X("remove", _todo_remove(index))    \
     X("check", _todo_check(task))       \
     X("list", _todo_list())         
 

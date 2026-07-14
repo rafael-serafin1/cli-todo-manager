@@ -29,6 +29,7 @@ size_t list_items_count(list L);
 void message(MessageType type, const char *fmt, ...);
 void configurar_locale(void);
 int flag_prefix(const char* _arg); 
+void fgoto(FILE *_f, const int _line);
 
 #endif
 

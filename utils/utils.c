@@ -138,3 +138,22 @@ int flag_prefix(const char* _arg) {
 
     return 0;
 }
+
+void fgoto(FILE *_f, const int _line) {
+    rewind(_f);
+
+    if (_line <= 1)
+        return;
+
+    int current = 1;
+    int c;
+
+    while ((c = fgetc(_f)) != EOF) {
+        if (c == '\n') {
+            current++;
+
+            if (current == _line)
+                return;
+        }
+    }
+}
