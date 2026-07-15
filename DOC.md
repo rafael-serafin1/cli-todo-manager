@@ -27,6 +27,12 @@ todo remove "<INDEX>"     # removes a task by index, aways use " "
 todo list <FLAGS>       # list 20 first tasks
 ```
 
+- To check or uncheck a task:
+```bash
+todo check "<INDEX>"    # aways inside " "
+todo uncheck "<INDEX>"  # same here
+```
+
 ## Important flags:
 
 **'config' command flags =**

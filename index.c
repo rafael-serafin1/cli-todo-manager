@@ -4,6 +4,10 @@
 #include "utils/utils.h"
 #include "main/parse.h"
 
+#define _TODO_INDEX_ERROR_                                                                                          \
+    if (index == 0) { message(MSG_ERROR, "Can't accept \'%d\' as a valid index.", index); return FAILURE; }         \
+    if (index < 0) { message(MSG_ERROR, "Can't accept negative numbers as a form of index."); return FAILURE; }
+
 extern Status all_files(void);
 extern int master(CLI cli);
 
@@ -11,6 +15,7 @@ extern Status todofile_add_task(const char *task);
 extern Status todofile_remove_task(const int _index);
 extern Status todofile_list_task(list _flags);
 extern Status todofile_check_task(const int _index);
+extern Status todofile_uncheck_task(const int _index);
 
 extern CLI *cli;
 
@@ -57,17 +62,15 @@ Status _todo_remove(int index) {
 }
 
 Status _todo_check(const int index) {
-    if (index == 0) {
-        message(MSG_ERROR, "Can't accept \'%d\' as a valid index.", index);
-        return FAILURE;
-    }
-
-    if (index < 0) {
-        message(MSG_ERROR, "Can't accept negative numbers as a form of index.");
-        return FAILURE;
-    }
+    _TODO_INDEX_ERROR_
 
     return todofile_check_task(index);
+}
+
+Status _todo_uncheck(const int index) {
+    _TODO_INDEX_ERROR_
+
+    return todofile_uncheck_task(index);
 }
 
 Status _todo_list(list _flags) {

@@ -199,6 +199,8 @@ void fstart(FILE *_f) {
     return;
 }
 
+/// @brief clears buffer's character '\n'
+/// @param _buffer character buffer
 void clear_buffer(char *_buffer) {
     for (size_t i = 0; _buffer[i] != '\0'; ++i) {
         if (_buffer[i] == '\n') {

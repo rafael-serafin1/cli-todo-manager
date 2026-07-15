@@ -24,9 +24,11 @@ typedef struct __todo_task {
 
 void create_todofile(void);
 void create_todofile_inPath(const char *_Path);
+
 Status todofile_add_task(const char* task);
 Status todofile_remove_task(const int _index);
 Status todofile_list_task(list _flags);
 Status todofile_check_task(const int _index);
+Status todofile_uncheck_task(const int _index);
 
 #endif

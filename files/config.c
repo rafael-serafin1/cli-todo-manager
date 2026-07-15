@@ -15,7 +15,7 @@ void create_config_file() {
     if (result == 0) {
         FILE *file = fopen(CONFIG_FILE, "wb");
     
-        __todo_config config = {falso, falso, verdade};
+        __todo_config config = {verdade, verdade, verdade};
     
         fwrite(&config, sizeof(__todo_config), 1, file);
         fclose(file);

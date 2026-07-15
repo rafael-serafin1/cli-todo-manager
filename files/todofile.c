@@ -232,6 +232,16 @@ Status todofile_check_task(const int _index) {
                 return FAILURE;
             }
 
+            if (c == 'X') {
+                CHECK_ERROR("Task was already checked.")
+                return FAILURE;
+            }
+
+            if (c != ' ') {
+                CHECK_ERROR("Invalid task format.")
+                return FAILURE;
+            }
+
             fseek(todo, -1, SEEK_CUR);
             fputc('X', todo);
             break;
@@ -243,6 +253,63 @@ Status todofile_check_task(const int _index) {
 
     clear_buffer(buffer);
     message(MSG_SUCCESS, "Task succesfully checked: \'%s\'", buffer);
+
+    fclose(todo);
+    return SUCCESS;
+}
+
+/// @brief 
+/// @param _index 
+/// @return 
+Status todofile_uncheck_task(const int _index) {
+    __todo_config CONFIGS = read_config_file();
+    
+    if (CONFIGS.checkable == falso) {
+        CHECK_ERROR("Todofile configs won't allow tasks to be checkable. Use \'todo config --checkable\'.")
+        return FAILURE;
+    }
+
+    register int count = read_counter_file();
+    const char* mode = (CONFIGS.readable == verdade) ? "r+\0" : "rb+\0";
+    const char* path = (CONFIGS.visible == verdade) ? TODO : TODO_FILE;
+
+    FILE *todo = fopen(path, mode);
+    NULL_POINTER_EXCEPTION
+
+    char buffer[BUFFER];
+    int c;
+
+    fgoto(todo, _index);
+    while ((c = fgetc(todo)) != EOF) {
+        if (c == '\n') {
+            CHECK_ERROR("Task obstructed or removed.")
+            return FAILURE;
+        }
+
+        if (c == '[') {
+            c = fgetc(todo);
+
+            if (c == EOF) {
+                CHECK_ERROR("End of the file reached.")
+                return FAILURE;
+            }
+
+            if (c == ' ') {
+                CHECK_ERROR("Can't uncheck an already unchecked task.")
+                return FAILURE;
+            }
+
+            fseek(todo, -1, SEEK_CUR);
+            fputc(' ', todo);
+            break;
+        }
+    }
+
+    fstart(todo);
+    fgets(buffer, sizeof(buffer), todo);
+
+    clear_buffer(buffer);
+    message(MSG_SUCCESS, "Task succesfully unchecked: \'%s\'", buffer);
 
     fclose(todo);
     return SUCCESS;

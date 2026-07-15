@@ -13,7 +13,7 @@ Status _todo_config();
 Status _todo_add(string todo);
 Status _todo_remove(const int index);
 Status _todo_check(const int index);
-Status _todo_uncheck(string todo);
+Status _todo_uncheck(const int index);
 Status _todo_list(list _flags);
 
 #define __TODO_VERSION "0.2.2"
@@ -25,6 +25,7 @@ Status _todo_list(list _flags);
     X("add")                \
     X("remove")             \
     X("check")              \
+    X("uncheck")            \
     X("list")
 
 
@@ -36,14 +37,17 @@ Status _todo_list(list _flags);
     X("add", _todo_add(task))           \
     X("remove", _todo_remove(index))    \
     X("check", _todo_check(index))      \
+    X("uncheck", _todo_uncheck(index))  \
     X("list", _todo_list(flags))         
 
-#define __EXPLICIT_TODO_CMDS                                            \
-    X("help", "Show this message")                                      \
-    X("version", "Show project's version")                              \
-    X("config <CONFIG>", "Configure Todofile options")                  \
-    X("add \"<TASK>\"", "Adds a task to Todofile")                      \
-    X("remove \"<INDEX>\"", "Removes a task from Todofile by index")    \
+#define __EXPLICIT_TODO_CMDS                                                \
+    X("help", "Show this message")                                          \
+    X("version", "Show project's version")                                  \
+    X("config <CONFIG>", "Configure Todofile options")                      \
+    X("add \"<TASK>\"", "Adds a task to Todofile")                          \
+    X("remove \"<INDEX>\"", "Removes a task from Todofile by index")        \
+    X("check \"<INDEX>\"", "Check a task from Todofile by it index")        \
+    X("uncheck \"<INDEX>\"", "Uncheck a task from Todofile by it index")    \
     X("list <FLAGS>", "List first 20 tasks from Todofile")        
 
 
