@@ -6,8 +6,12 @@
 
 extern Status all_files(void);
 extern int master(CLI cli);
+
 extern Status todofile_add_task(const char *task);
 extern Status todofile_remove_task(const int _index);
+extern Status todofile_list_task(list _flags);
+extern Status todofile_check_task(const int _index);
+
 extern CLI *cli;
 
 Status _todo_help(list todo) {
@@ -52,10 +56,20 @@ Status _todo_remove(int index) {
     return todofile_remove_task(index);
 }
 
-Status _todo_check(string todo) {
-    return SUCCESS;
+Status _todo_check(const int index) {
+    if (index == 0) {
+        message(MSG_ERROR, "Can't accept \'%d\' as a valid index.", index);
+        return FAILURE;
+    }
+
+    if (index < 0) {
+        message(MSG_ERROR, "Can't accept negative numbers as a form of index.");
+        return FAILURE;
+    }
+
+    return todofile_check_task(index);
 }
 
-Status _todo_list() {
-    return SUCCESS;
+Status _todo_list(list _flags) {
+    return todofile_list_task(_flags);
 }

@@ -26,10 +26,18 @@ typedef enum {
 list initialize_list(void);
 void add_to_list(list L, const char *flag);
 size_t list_items_count(list L);
+
 void message(MessageType type, const char *fmt, ...);
+
 void configurar_locale(void);
+
 int flag_prefix(const char* _arg); 
+
 void fgoto(FILE *_f, const int _line);
+size_t fheight(FILE *_f);
+void fstart(FILE *_f);
+
+void clear_buffer(char* _buffer);
 
 #endif
 

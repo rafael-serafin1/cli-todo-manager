@@ -139,6 +139,9 @@ int flag_prefix(const char* _arg) {
     return 0;
 }
 
+/// @brief Moves cursor to a certain line
+/// @param _f FILE pointer 
+/// @param _line line index
 void fgoto(FILE *_f, const int _line) {
     rewind(_f);
 
@@ -154,6 +157,53 @@ void fgoto(FILE *_f, const int _line) {
 
             if (current == _line)
                 return;
+        }
+    }
+}
+
+/// @param _f FILE pointer
+/// @return quantity of lines inside a file
+size_t fheight(FILE *_f) {
+    rewind(_f);
+
+    char buffer[1024];
+    int lines = 0;
+
+    while (fgets(buffer, sizeof(buffer), _f) != NULL)
+        lines++;
+
+    rewind(_f);
+    return lines;
+}
+
+/// @brief Moves cursor to start of the line
+/// @param _f FILE pointer
+void fstart(FILE *_f) {
+    register size_t pos = ftell(_f);
+
+    if (pos == -1) {
+        message(MSG_ERROR, "Couldn't move cursor to the start of the line. ftell() returned \'%d\'", pos);
+        return;
+    }
+
+    while (pos > 0) {
+        fseek(_f, --pos, SEEK_SET);
+
+        if (fgetc(_f) == '\n') {
+            pos++;
+            break;
+        }
+    }
+
+    fseek(_f, pos, SEEK_SET);
+    return;
+}
+
+void clear_buffer(char *_buffer) {
+    for (size_t i = 0; _buffer[i] != '\0'; ++i) {
+        if (_buffer[i] == '\n') {
+            _buffer[i] = '\0';
+            break;
         }
     }
 }

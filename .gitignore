@@ -6,5 +6,8 @@
 /.todo
 
 # arquivos
-*.exe
 *.env
+*.log
+*.bin
+*.temp
+*.tmp

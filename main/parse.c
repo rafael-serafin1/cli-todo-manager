@@ -13,9 +13,9 @@ Status parse_flags(int argc, char **argv) {
     
     CLI helper = *cli;
     for (register int i = 0; i < argc; ++i) {
-        #define X(flag, alias, desc)           \
+        #define X(flag, alias)                      \
             if ((strcmp(flag, argv[i]) == 0 || strcmp(alias, argv[i]) == 0) && (flag_prefix(argv[i]) == 1)) { add_to_list(helper.flags, argv[i]); }
-            CONFIG_FLAGS
+            ALL_FLAGS
         #undef X
     }
 
@@ -24,6 +24,7 @@ Status parse_flags(int argc, char **argv) {
         return FAILURE;
     } else
         return SUCCESS;
+        
     cli->flags = helper.flags; 
     return SUCCESS;
 }
@@ -48,10 +49,13 @@ Status parse_command(int argc, char **argv) {
         __TODO_CMDS_FUNC
     #undef X
 
-    message(MSG_ERROR, "Todofile (todo): Inexistent or incorrect command: \"%s\"\n", cmd);
+    message(MSG_ERROR, "Todofile (todo): Inexistent or incorrect command: \"%s\"", cmd);
     return FAILURE;
 }
 
+/// @brief parse an character provided by argv and transforms into a integer
+/// @param _arg const character pointer
+/// @return integer number | negative if failed 
 int parse_index(const char* _arg) {
     if (_arg == NULL || *_arg == '\0')
         return -1;
