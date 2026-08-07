@@ -68,7 +68,7 @@ void increment_counter_file() {
 }
 
 void reset_counter_file() {
-    final_count = counter;
+    final_count = read_counter_file();
     counter = 0;
     FILE *cf = fopen(COUNTER_FILE, "wb");
 

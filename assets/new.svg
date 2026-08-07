@@ -4,11 +4,11 @@
      viewBox="0 0 256 256">
 
     <!-- Documento -->
-    <path fill="#88E788"
+    <path fill="#22C55E"
           d="M48 16h112l48 48v160c0 8.8-7.2 16-16 16H48c-8.8 0-16-7.2-16-16V32c0-8.8 7.2-16 16-16z"/>
 
     <!-- Dobra -->
-    <path fill="#22C55E"
+    <path fill="#88E788"
           d="M160 16v48h48z"/>
 
     <!-- Prompt -->

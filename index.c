@@ -11,11 +11,14 @@
 extern Status all_files(void);
 extern int master(CLI cli);
 
+extern Status todofile_task_count();
 extern Status todofile_add_task(const char *task);
 extern Status todofile_remove_task(const int _index);
 extern Status todofile_list_task(list _flags);
 extern Status todofile_check_task(const int _index);
 extern Status todofile_uncheck_task(const int _index);
+extern Status todofile_ongoing_task(const int _index);
+extern Status todofile_reset_handler(const int argc, const char **argv);
 
 extern CLI *cli;
 
@@ -31,6 +34,10 @@ Status _todo_help(list todo) {
 Status _todo_version() {
     message(MSG_INFO, "Todofile version: \'%s\'", __TODO_VERSION);
     return SUCCESS;
+}
+
+Status _todo_count() {
+    return todofile_task_count();
 }
 
 Status _todo_init(char **argv) {
@@ -71,6 +78,16 @@ Status _todo_uncheck(const int index) {
     _TODO_INDEX_ERROR_
 
     return todofile_uncheck_task(index);
+}
+
+Status _todo_ongoing(const int index) {
+    _TODO_INDEX_ERROR_
+
+    return todofile_ongoing_task(index);
+}
+
+Status _todo_reset(int argc, char **argv) {
+    return todofile_reset_handler(argc, (const char **) argv);
 }
 
 Status _todo_list(list _flags) {

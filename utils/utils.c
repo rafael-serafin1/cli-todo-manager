@@ -49,6 +49,8 @@ size_t list_items_count(list L) {
 #define ANSI_MAGENTA    "\x1b[35m"
 #define ANSI_CYAN       "\x1b[36m"
 #define ANSI_WHITE      "\x1b[37m"
+#define ANSI_COOL_CYAN  "\x1b[38;2;0;170;190m"
+
 
 void message(MessageType type, const char *fmt, ...)
 {
@@ -80,6 +82,11 @@ void message(MessageType type, const char *fmt, ...)
         case MSG_DEBUG:
             color = ANSI_MAGENTA;
             prefix = "[DEBUG]";
+            break;
+
+        case MSG_HINT:
+            color = ANSI_COOL_CYAN;
+            prefix = "[HINT]";
             break;
 
         default:

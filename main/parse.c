@@ -50,6 +50,7 @@ Status parse_command(int argc, char **argv) {
     #undef X
 
     message(MSG_ERROR, "Todofile (todo): Inexistent or incorrect command: \"%s\"", cmd);
+    message(MSG_HINT, "Use 'todo help' to show every single command avaliable.");
     return FAILURE;
 }
 

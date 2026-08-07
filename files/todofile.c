@@ -4,15 +4,20 @@
 
 #define CHECK_ERROR(reason)         \
     message(MSG_ERROR, "Couldn't check task \"%d\" :: \'%s\'", _index, reason);
+#define NORMAL_ERROR(reason)        \
+    message(MSG_ERROR, "Couldn't finish request: \'%s\'", reason);
+
 #define NULL_POINTER_EXCEPTION  \
     if (todo == NULL) { message(MSG_ERROR, "Couldn't open file: \"%s\"", path); return FAILURE; } 
 
 extern __todo_config read_config_file();
 extern void create_config_file();
 extern void write_config_file(__todo_config config);
+
 extern void create_counter_file();
 extern int read_counter_file();
 extern void increment_counter_file();
+extern void reset_counter_file();
 
 void create_todofile() {
     __todo_config CONFIGS = read_config_file();
@@ -44,6 +49,11 @@ void create_todofile_inPath(const char *_Path) {
     fclose(f);
 }
 
+Status todofile_task_count() {
+    register int count = read_counter_file();
+    return SUCCESS;
+}
+
 /// @brief responsible for adding a task to Todofile
 /// @param task string containing task
 /// @return Status -> SUCCESS OR FAILURE
@@ -64,8 +74,6 @@ Status todofile_add_task(const char *task) {
         snprintf(buffer, sizeof(buffer), "%d. %s %s\n", (count + 1), CHECKBOX_UNCHECKED, task);
     else 
         snprintf(buffer, sizeof(buffer), "%d. %s\n", (count + 1), task);
-
-    //message(MSG_DEBUG, "Mensagem final: %s", buffer);
 
     FILE *todo = fopen(path, mode);
     NULL_POINTER_EXCEPTION
@@ -311,6 +319,120 @@ Status todofile_uncheck_task(const int _index) {
     clear_buffer(buffer);
     message(MSG_SUCCESS, "Task succesfully unchecked: \'%s\'", buffer);
 
+    fclose(todo);
+    return SUCCESS;
+}
+
+/// @brief 
+/// @param _index 
+/// @return 
+Status todofile_ongoing_task(const int _index) {
+    __todo_config CONFIGS = read_config_file();
+    
+    if (CONFIGS.checkable == falso) {
+        CHECK_ERROR("Todofile configs won't allow tasks to be checkable. Use \'todo config --checkable\'.")
+        return FAILURE;
+    }
+
+    register int count = read_counter_file();
+    const char* mode = (CONFIGS.readable == verdade) ? "r+\0" : "rb+\0";
+    const char* path = (CONFIGS.visible == verdade) ? TODO : TODO_FILE;
+
+    FILE *todo = fopen(path, mode);
+    NULL_POINTER_EXCEPTION
+
+    char buffer[BUFFER];
+    int c;
+
+    fgoto(todo, _index);
+    while ((c = fgetc(todo)) != EOF) {
+        if (c == '\n') {
+            CHECK_ERROR("Task obstructed or removed.")
+            return FAILURE;
+        }
+
+        if (c == '[') {
+            c = fgetc(todo);
+
+            if (c == EOF) {
+                CHECK_ERROR("End of the file reached.")
+                return FAILURE;
+            }
+
+            if (c == '-') {
+                CHECK_ERROR("Can't uncheck an already on going task.")
+                return FAILURE;
+            }
+
+            fseek(todo, -1, SEEK_CUR);
+            fputc('-', todo);
+            break;
+        }
+    }
+
+    fstart(todo);
+    fgets(buffer, sizeof(buffer), todo);
+
+    clear_buffer(buffer);
+    message(MSG_SUCCESS, "Task succesfully on going: \'%s\'", buffer);
+
+    fclose(todo);
+    return SUCCESS;
+}
+
+
+Status todofile_reset_handler(const int argc, const char **argv) {
+    if (argc <= 2) {
+        message(MSG_WARNING, "No specified handling for 'reset' command. Proceding to remove all tasks modifiers.");
+        goto modifiers;
+    }
+
+    if (strcmp(argv[2], "--all") == 0 || strcmp(argv[2], "-a") == 0)
+        goto modifiers;
+    
+modifiers:
+    __todo_config CONFIGS = read_config_file();
+    
+    if (CONFIGS.checkable == falso) {
+        message(MSG_ERROR, "Todofile configs won't allow tasks to be checkable. Use \'todo config --checkable\'.");
+        return FAILURE;
+    }
+
+    register int count = read_counter_file();
+    const char* mode = (CONFIGS.readable == verdade) ? "r+\0" : "rb+\0";
+    const char* path = (CONFIGS.visible == verdade) ? TODO : TODO_FILE;
+
+    FILE *todo = fopen(path, mode);
+    NULL_POINTER_EXCEPTION
+
+    char buffer[BUFFER];
+    int c;
+    register int modified = 0;
+
+    while ((c = fgetc(todo)) != EOF) {
+
+        if (c != '[')
+            continue;
+
+        long pos = ftell(todo);
+
+        c = fgetc(todo);
+
+        if (c == EOF)
+            break;
+
+        if (c == 'X' || c == '-') {
+            fseek(todo, pos, SEEK_SET);
+            fputc(' ', todo);
+
+            /* Necessário antes de voltar a ler */
+            fseek(todo, pos + 1, SEEK_SET);
+
+            ++modified;
+        }
+    }
+
+    message(MSG_INFO, "%d tasks affected.", modified);
     fclose(todo);
     return SUCCESS;
 }

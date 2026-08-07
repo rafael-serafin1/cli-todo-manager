@@ -17,3 +17,10 @@ sep:
 
 all: comp
 	$(TODO) help
+
+debug:
+	todo add "Bake a cake"
+	todo add "Make another mistake"
+	todo add "Go in a vacation"
+	todo check "1"
+	todo ongoing "2"

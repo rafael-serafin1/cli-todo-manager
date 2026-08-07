@@ -40,10 +40,12 @@ Each project can maintain its own task repository, making it ideal for software 
 - Remove tasks
 - List tasks
 - Check and uncheck tasks
+- Mark as on-going
 - Binary or plain-text storage
 - Hidden repository support
 - Project-local task management
 - Configurable behavior
+- Reset tasks modifiers
 
 ---
 

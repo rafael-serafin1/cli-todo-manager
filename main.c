@@ -13,7 +13,8 @@ int main(int argc, char **argv) {
     Status S;
 
     if (argc < 2) {
-        message(MSG_ERROR, "No command provided. Correct usage -> \'todo <COMMAND>\'\n");
+        message(MSG_ERROR, "No command provided. Correct usage -> \'todo <COMMAND>\'");
+        message(MSG_HINT, "Use 'todo help' to show every single command avaliable.");
         return 1;
     }
 

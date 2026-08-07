@@ -20,7 +20,8 @@ typedef enum {
     MSG_WARNING,
     MSG_ERROR,
     MSG_SUCCESS,
-    MSG_DEBUG
+    MSG_DEBUG,
+    MSG_HINT
 } MessageType;
 
 list initialize_list(void);
@@ -33,9 +34,14 @@ void configurar_locale(void);
 
 int flag_prefix(const char* _arg); 
 
+/// @brief FILE manipulation functions
+#pragma region 
+
 void fgoto(FILE *_f, const int _line);
 size_t fheight(FILE *_f);
 void fstart(FILE *_f);
+
+#pragma endregion
 
 void clear_buffer(char* _buffer);
 
