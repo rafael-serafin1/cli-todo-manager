@@ -155,15 +155,14 @@ void fgoto(FILE *_f, const int _line) {
     if (_line <= 1)
         return;
 
-    int current = 1;
-    int c;
+    register int current = 1;
+    register int c;
 
     while ((c = fgetc(_f)) != EOF) {
         if (c == '\n') {
-            current++;
+            ++current;
 
-            if (current == _line)
-                return;
+            if (current == _line) return;
         }
     }
 }

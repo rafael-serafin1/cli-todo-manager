@@ -1,4 +1,5 @@
 #include "todofile.h"
+#include "utils/utils.h"
 
 #define BUFFER 2048
 
@@ -144,9 +145,8 @@ Status todofile_list_task(list _flags) {
     const char* mode = (CONFIGS.readable == verdade) ? "r\0" : "rb\0";
     const char* path = (CONFIGS.visible == verdade) ? TODO : TODO_FILE;
 
-
     list helper = _flags;
-    int hasAllFlag = 0, hasCheckedFlag = 0, hasUncheckedFlag = 0;
+    int hasAllFlag = 0, hasCheckedFlag = 0, hasUncheckedFlag = 0, hasOngoingFlag = 0;
     
     while (helper->item != NULL) {
         if (strcmp(helper->item, "--all") == 0 || strcmp(helper->item, "-a") == 0)
@@ -155,10 +155,11 @@ Status todofile_list_task(list _flags) {
             hasCheckedFlag = 1;
         if (strcmp(helper->item, "--unchecked") == 0 || strcmp(helper->item, "-un") == 0) 
             hasUncheckedFlag = 1;
+        if (strcmp(helper->item, "--ongoing") == 0 || strcmp(helper->item, "-on") == 0)
+            hasOngoingFlag = 1;
 
         helper = helper->next;
     }
-
 
     if (hasCheckedFlag == 1 && hasUncheckedFlag == 1) {
         message(MSG_ERROR, "Can't use \'--checked\' and \'--unchecked\' flags together.");
@@ -169,7 +170,6 @@ Status todofile_list_task(list _flags) {
         message(MSG_INFO, "No tasks recorded.\n");
         return FAILURE;
     }
-
 
     register int handler = 0;
     if (count > 20)
@@ -186,13 +186,51 @@ Status todofile_list_task(list _flags) {
 
     char buffer[BUFFER];
 
-    for (register size_t i = 0; i < handler; ++i) {
-        fgoto(todo, (i + 1));
-        if (fgets(buffer, sizeof(buffer), todo) == NULL)
-            break;
+    if ((hasAllFlag && !(hasCheckedFlag || hasUncheckedFlag)) || helper->item == NULL) {
+        for (register size_t i = 0; i < handler; ++i) {
+            fgoto(todo, (i + 1));
+            if (fgets(buffer, sizeof(buffer), todo) == NULL)
+                break;
 
-        clear_buffer(buffer);
-        message(MSG_INFO, "Task %d: \"%s\"", (i + 1), buffer);
+            clear_buffer(buffer);
+            message(MSG_INFO, "Task %d: \"%s\"", (i + 1), buffer);
+        }
+    }
+
+    if (hasCheckedFlag) {
+        for (register size_t i = 0; i < handler; ++i) {
+            fgoto(todo, (i + 1));
+            if (fgets(buffer, sizeof(buffer), todo) == NULL)
+                break;
+
+            clear_buffer(buffer);
+            if (is_checked(buffer))
+                message(MSG_INFO, "Task %d: \"%s\"", (i + 1), buffer);
+        }
+    }
+    
+    if (hasUncheckedFlag) {
+        for (register size_t i = 0; i < handler; ++i) {
+            fgoto(todo, (i + 1));
+            if (fgets(buffer, sizeof(buffer), todo) == NULL)
+                break;
+
+            clear_buffer(buffer);
+            if (is_unchecked(buffer))
+                message(MSG_INFO, "Task %d: \"%s\"", (i + 1), buffer);
+        }
+    }
+
+    if (hasOngoingFlag) {
+        for (register size_t i = 0; i < handler; ++i) {
+            fgoto(todo, (i + 1));
+            if (fgets(buffer, sizeof(buffer), todo) == NULL)
+                break;
+
+            clear_buffer(buffer);
+            if (is_ongoing(buffer))
+                message(MSG_INFO, "Task %d: \"%s\"", (i + 1), buffer);
+        }
     }
     
     if (hasAllFlag == 1) 
@@ -245,7 +283,7 @@ Status todofile_check_task(const int _index) {
                 return FAILURE;
             }
 
-            if (c != ' ') {
+            if (c != ' ' && c != '-') {
                 CHECK_ERROR("Invalid task format.")
                 return FAILURE;
             }
@@ -382,33 +420,33 @@ Status todofile_ongoing_task(const int _index) {
 
 
 Status todofile_reset_handler(const int argc, const char **argv) {
+    __todo_config CONFIGS = read_config_file();
+
+    if (CONFIGS.checkable == falso) {
+        message(MSG_ERROR, "Todofile configs won't allow tasks to be checkable. Use \'todo config --checkable\'.");
+        return FAILURE;
+    }
+    
+    register int count = read_counter_file();
+    const char* mode = (CONFIGS.readable == verdade) ? "r+\0" : "rb+\0";
+    const char* path = (CONFIGS.visible == verdade) ? TODO : TODO_FILE;
+    
+    FILE *todo = fopen(path, mode);
+    NULL_POINTER_EXCEPTION
+    
+    char buffer[BUFFER];
+    int c;
+    register int modified = 0;
+
     if (argc <= 2) {
         message(MSG_WARNING, "No specified handling for 'reset' command. Proceding to remove all tasks modifiers.");
         goto modifiers;
     }
 
-    if (strcmp(argv[2], "--all") == 0 || strcmp(argv[2], "-a") == 0)
+    if (strcmp(argv[2], "--mod") == 0 || strcmp(argv[2], "-m") == 0)
         goto modifiers;
-    
+
 modifiers:
-    __todo_config CONFIGS = read_config_file();
-    
-    if (CONFIGS.checkable == falso) {
-        message(MSG_ERROR, "Todofile configs won't allow tasks to be checkable. Use \'todo config --checkable\'.");
-        return FAILURE;
-    }
-
-    register int count = read_counter_file();
-    const char* mode = (CONFIGS.readable == verdade) ? "r+\0" : "rb+\0";
-    const char* path = (CONFIGS.visible == verdade) ? TODO : TODO_FILE;
-
-    FILE *todo = fopen(path, mode);
-    NULL_POINTER_EXCEPTION
-
-    char buffer[BUFFER];
-    int c;
-    register int modified = 0;
-
     while ((c = fgetc(todo)) != EOF) {
 
         if (c != '[')
