@@ -12,4 +12,15 @@
     X("count", "Show amount of tasks", count_command)           \
     X("config", "Configure Todofile options", config_command)
 
+
+#ifdef _WIN32
+    #define CONFIG_FILE ".todo\\config\\config.bin"
+    #define COUNTER_FILE ".todo\\config\\count.bin\0"
+    #define TODO_FILE ".\\Todofile\0"
+#else
+    #define CONFIG_FILE ".todo/config/config.bin"
+    #define COUNTER_FILE ".todo/config/count.bin\0"
+    #define TODO_FILE "./Todofile\0"
+#endif
+
 #endif

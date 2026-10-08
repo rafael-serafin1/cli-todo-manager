@@ -1,20 +1,11 @@
 #pragma once
 #include "../file/file.hpp"
+#include "../macros/macros.hpp"
 
 #ifndef CONFIG_H
 #define CONFIG_H
 
 #include <cstddef>
-
-#ifdef _WIN32
-    #define CONFIG_FILE ".todo\\config\\config.bin"
-    #define COUNTER_FILE ".todo\\config\\count.bin\0"
-    #define TODO_FILE ".\\Todofile\0"
-#else
-    #define CONFIG_FILE ".todo/config/config.bin"
-    #define COUNTER_FILE ".todo/config/count.bin\0"
-    #define TODO_FILE "./Todofile\0"
-#endif
 
 namespace TODO {
     struct Todofile_Config {
