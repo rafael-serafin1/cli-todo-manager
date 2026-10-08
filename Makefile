@@ -1,26 +1,9 @@
-FILES = main.c files/configure.c utils/utils.c main/parse.c index.c files/todofile.c files/count.c files/config.c
-FILE = main.c
-TODO = ./bin/todo
+FILES=index.cpp parse/parse.cpp commands/commands.cpp config/config.cpp file/file.cpp
+IMPORTANT_FLAGS=-std=c++20 -O2
+EXTRA_FLAGS=-Wall
 
-comp: 
-	g++ $(FILES) -o bin/todo
+comp:
+	g++ $(IMPORTANT_FLAGS) $(FILES) -o ./bin/todo
 
-expd:
-	g++ -E $(FILE) -o bin/expanded.i
-
-sep:
-	g++ -c main.c
-	g++ -c files/configure.c
-	g++ -c utils/utils.c
-	g++ -c main/parse.c 
-	g++ -c index.c
-
-all: comp
-	$(TODO) help
-
-debug:
-	todo add "Bake a cake"
-	todo add "Make another mistake"
-	todo add "Go in a vacation"
-	todo check "1"
-	todo ongoing "2"
+all:
+	g++ $(IMPORTANT_FLAGS) $(EXTRA_FLAGS) $(FILES) -o ./bin/todo

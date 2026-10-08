@@ -222,7 +222,7 @@ Shows only pending tasks.
 ## Check a task
 
 ```bash
-todo check "2"
+todo switch "2"
 ```
 
 Marks task 2 as completed.
@@ -238,7 +238,7 @@ Example output
 ## Uncheck a task
 
 ```bash
-todo uncheck "2"
+todo switch "2"
 ```
 
 Marks the task as pending again.
@@ -326,7 +326,7 @@ Output
 Complete a task
 
 ```bash
-todo check "1"
+todo switch "1"
 ```
 
 ```
@@ -386,6 +386,6 @@ This project is distributed under the MIT License.
 
 <div align="center">
 
-**Built with C ❤️**
+**Built with C++ ❤️**
 
 </div>

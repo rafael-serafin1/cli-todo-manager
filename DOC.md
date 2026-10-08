@@ -25,12 +25,16 @@ todo remove "<INDEX>"     # removes a task by index, aways use " "
 - To list all tasks:
 ```bash
 todo list <FLAGS>       # list 20 first tasks
+todo list --all         # list every task (-a is an alias)
 ```
+
+- The task total is stored in `.todo/config/count.bin` and updated by `add` and
+  `remove`. `list`, `switch`, and `count` use this total.
 
 - To check or uncheck a task:
 ```bash
-todo check "<INDEX>"    # aways inside " "
-todo uncheck "<INDEX>"  # same here
+todo switch "<INDEX>"    # aways inside " "
+todo switch "<INDEX>"    # same here
 ```
 
 ## Important flags:
@@ -43,7 +47,7 @@ todo config -r -v -c
 or 
 
 ```bash
-todo config --readable --visible --checkable    
+todo config --readable --checkable    
 ```
 
 ### Resume
@@ -55,13 +59,6 @@ todo config --readable --visible --checkable
     true: record tasks in normal text
 ```
 
-`--visible` => 
-```
-    false: Todofile will be stored inside repository `.todo/` 
-
-    true: Todofile will be stored in projects root
-```
-
 `--checkable` =>
 ```
     false: Tasks are recorded normalized
@@ -71,9 +68,8 @@ todo config --readable --visible --checkable
 
 ### Default values
 ```
--r ==> false
--c ==> false
--v ==> true
+-r ==> true
+-c ==> true
 ```
 
 **'list' command flags =**

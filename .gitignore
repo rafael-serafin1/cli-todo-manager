@@ -3,11 +3,9 @@
 /dist
 /build
 /.vscode
-/.todo
 
 # arquivos
 *.env
 *.log
-*.bin
 *.temp
 *.tmp
