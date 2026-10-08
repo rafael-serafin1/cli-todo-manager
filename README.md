@@ -4,7 +4,7 @@
 
 *A fast, lightweight and configurable task manager for the terminal, written entirely in C.*
 
-![Language](https://img.shields.io/badge/language-C-blue.svg)
+![Language](https://img.shields.io/badge/language-C++-blue.svg)
 ![Platform](https://img.shields.io/badge/platform-Linux%20%7C%20Windows-green.svg)
 ![License](https://img.shields.io/badge/license-MIT-orange.svg)
 
@@ -14,7 +14,7 @@
 
 # Overview
 
-Todo CLI Manager is a command-line task manager written from scratch in C.
+Todo CLI Manager is a command-line task manager written from scratch in C++.
 
 Instead of opening graphical applications or browser tabs, you can manage your tasks directly from the terminal through a single executable:
 
@@ -40,7 +40,6 @@ Each project can maintain its own task repository, making it ideal for software 
 - Remove tasks
 - List tasks
 - Check and uncheck tasks
-- Mark as on-going
 - Binary or plain-text storage
 - Hidden repository support
 - Project-local task management
@@ -245,32 +244,6 @@ Marks the task as pending again.
 
 ```
 [ ] Finish README
-```
-
----
-
-# Repository Structure
-
-Depending on your configuration, Todo stores data in one of two ways.
-
-Visible mode
-
-```
-project/
-│
-├── Todofile
-└── Todo.config
-```
-
-Hidden mode
-
-```
-project/
-│
-└── .todo/
-    ├── Todofile
-    ├── Todo.config
-    └── Counter
 ```
 
 ---
