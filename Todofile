@@ -1,5 +1,8 @@
 1. [ ] Adicionar novas configuracoes, como por exemplo, aceitar UTF-16 e UTF-32
-2. [ ] Edicao de tarefas via comando 'edit', assim como adicionar configuracao 'editable' para que permita editar tasks ou nao
-3. [ ] adicionar armazenamento de data de adicao das tarefas via arquivo de log no repositorio Todofile
+2. [X] Edicao de tarefas via comando 'edit', assim como adicionar configuracao 'editable' para que permita editar tasks ou nao
+3. [X] Adicionar armazenamento de data de adicao das tarefas via arquivo de log no repositorio Todofile
 4. [ ] Desenvolver prioridade mutaveis de tasks
 5. [ ] Output colorido dependendo da categoria da tarefa
+6. [X] Novo comando de linha 'check' para validar a integridade do arquivo Todofile e do repositório
+7. [ ] Implementar flag para o comando 'add', cuja propriedade seria de adicionar uma nova tarefa já marcada como concluída para o arquivo
+8. [X] Sistema de logs para os comandos 'add', 'remove', 'switch', 'edit', 'config' e 'check'

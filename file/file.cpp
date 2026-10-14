@@ -27,6 +27,48 @@ namespace TODO {
         close();
     }
 
+    void WFile::print(const char* _Content, const int _Line) {
+        if (_Line < 1)
+            throw TODO::todo_file_exception("Line must be greater than 0.");
+
+        if (_Content == nullptr)
+            throw TODO::todo_file_exception("Content cannot be null.");
+
+        std::string content = read();
+        std::size_t lineStart = 0;
+
+        for (int currentLine = 1; currentLine < _Line; ++currentLine) {
+            const std::size_t lineEnd = content.find('\n', lineStart);
+
+            if (lineEnd == std::string::npos)
+                throw TODO::todo_file_exception("Line does not exist.");
+                
+            lineStart = lineEnd + 1;
+        }
+
+        if (lineStart >= content.size())
+            throw TODO::todo_file_exception("Line does not exist.");
+
+        std::size_t lineEnd = content.find('\n', lineStart);
+        if (lineEnd == std::string::npos)
+            lineEnd = content.size();
+
+        if (lineEnd > lineStart && content[lineEnd - 1] == '\r')
+            --lineEnd;
+
+        content.replace(lineStart, lineEnd - lineStart, _Content);
+
+        module("w");
+        open();
+        check();
+
+        const std::size_t bytesWritten = fwrite(content.data(), 1, content.size(), _file);
+        close();
+
+        if (bytesWritten != content.size())
+            throw TODO::todo_file_exception("Could not write the updated file.");
+    }
+
     std::string WFile::read() {
         module("r");
         open();

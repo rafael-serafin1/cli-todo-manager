@@ -51,6 +51,8 @@ namespace TODO {
         std::string find_mode(const char* path);
 
         void write(const char* _Content);
+        void print(const char* _Content, const int _Line);
+
         void append(const char* _Content);
         std::string read();
         std::string read(const int _Line);

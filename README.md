@@ -106,6 +106,17 @@ Displays every available command and flag.
 
 ---
 
+## Check repository integrity
+
+```bash
+todo check
+```
+
+Verifies that the task counter matches the tasks in `Todofile` and that task
+entries are valid. This command does not modify repository files.
+
+---
+
 ## Configure Todo
 
 ```bash
@@ -321,13 +332,12 @@ Todo CLI Manager follows a different philosophy:
 - No internet connection
 - Extremely small footprint
 - Easy integration into development workflows
-- Written entirely in ANSI C
 
 ---
 
 # Roadmap
 
-- [ ] Task editing
+- [X] Task editing
 - [ ] Due dates
 - [ ] Task priorities
 - [ ] Categories

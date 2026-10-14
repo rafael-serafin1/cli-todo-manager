@@ -8,6 +8,8 @@
 #ifndef DIALOG_TODO_
 #define DIALOG_TODO_
 
+#define MODELO_ESC_RGB      "\033[38;2;R;G;Bm"
+
 namespace TODO {
     enum class dialog_types {
         red,
@@ -22,14 +24,18 @@ namespace TODO {
         dark_blue,
         cyan,
         magenta,
-        purple
+        purple,
+        gray,
+        grey
     };
+    
     enum class report_types {
         success,
         error,
         warn,
         info,
         debug,
+        ignorable,
         log
     };
 
@@ -52,6 +58,9 @@ namespace TODO {
             case dialog_types::cyan:        return "\033[96m";
             case dialog_types::magenta:     return "\033[95m";
             case dialog_types::purple:      return "\033[35m";
+
+            case dialog_types::gray:        return "\033[38;2;80;80;80m";
+            case dialog_types::grey:        return "\033[38;2;255;152;0m";
             }
 
             return "\033[0m";
@@ -73,6 +82,9 @@ namespace TODO {
 
             case report_types::debug:
                 return color(dialog_types::magenta);
+
+            case report_types::ignorable:
+                return color(dialog_types::grey);
 
             case report_types::log:
                 return color(dialog_types::white);
@@ -100,6 +112,9 @@ namespace TODO {
 
             case report_types::log:
                 return "[ log ]";
+
+            case report_types::ignorable:
+                return "[ ignorable ]";
             }
 
             return "[ unknown ]";

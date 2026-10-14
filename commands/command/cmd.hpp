@@ -4,6 +4,7 @@
 #include "../../file/file.hpp"
 #include "../../macros/macros.hpp"
 #include "../../utils/dialog.hpp"
+#include "../../log/logs.hpp"
 
 #include <charconv>
 #include <filesystem>
@@ -13,7 +14,7 @@
 #include <vector>
 
 #ifndef TODO_VERSION
-#define TODO_VERSION "development"
+    #define TODO_VERSION "development"
 #endif
 
 namespace TODO {
@@ -25,6 +26,7 @@ namespace TODO {
     class basic_command {
     protected:
         const std::vector<std::string> flags;
+        log_generator logger = log_generator();
 
     public:
         explicit basic_command(const std::vector<std::string>& arguments)
@@ -154,6 +156,7 @@ namespace TODO {
             }
 
             fs::create_directories(root / "config");
+            fs::create_directory(LOG_DIRECTORY);
 
             WFile task_file(TODO_FILE);
             task_file.create(TODO_FILE);
@@ -165,6 +168,8 @@ namespace TODO {
             WFile config_file(CONFIG_FILE);
             config_file.create(CONFIG_FILE);
             config_file.write("checkable=true\nreadable=true\n");
+
+            this->logger.generate(this->logger.log_message("Initialized Todofile repository."));
 
             dialog::report(report_types::success, "Todofile repository initialized.");
             return true;
@@ -211,7 +216,9 @@ namespace TODO {
 
             if (!printed)
                 std::cout << "No tasks found.\n";
-            
+            else    
+                std::printf("|- All tasks successfully shown.");
+
             return true;
         }
     };
@@ -222,16 +229,27 @@ namespace TODO {
 
         bool run() override {
             const std::string title = join_arguments(flags, 0);
+
             if (title.empty())
                 throw todo_file_exception("Usage: todo add <task description>");
 
             TODOConfig config;
             const std::size_t count = config.read_count();
+            
             auto tasks = read_tasks();
             validate_task_count(tasks, count);
+            
             tasks.push_back({false, title});
             write_tasks(tasks);
+
             config.increment_count();
+
+            std::string holder = std::string("Added task '");
+            holder += title + "' to Todofile.";
+
+            const char* message = logger.log_message(holder);
+            this->logger.generate(message);
+
             dialog::report(
                 report_types::success, "Added task %u.", static_cast<unsigned int>(count + 1)
             );
@@ -248,16 +266,27 @@ namespace TODO {
                 throw todo_file_exception("Usage: todo remove <task number>");
 
             const unsigned int number = parse_task_number(flags.front());
+            std::string holder = std::string("Removed task '");
+
             TODOConfig config;
             const std::size_t count = config.read_count();
+
             auto tasks = read_tasks();
             validate_task_count(tasks, count);
+
             if (number > count)
                 throw todo_file_exception("Task number does not exist.");
 
-            tasks.erase(tasks.begin() + (number - 1));
+            holder += tasks[number - 1].title + "', of number " + std::to_string(number) + ", from Todofile.";
+
+            tasks.erase(tasks.begin() + (number - 1));  
             write_tasks(tasks);
+
             config.decrement_count();
+
+            const char* message = logger.log_message(holder);
+            this->logger.generate(message);
+
             dialog::report(report_types::success, "Removed task %u.", number);
             return true;
         }
@@ -315,6 +344,8 @@ namespace TODO {
 
             WFile file(CONFIG_FILE);
             std::string content = file.read();
+            std::string copy    = content;
+
             const std::string setting = flags[0] + "=" +
                 (parse_boolean(flags[1]) ? "true" : "false");
 
@@ -334,6 +365,12 @@ namespace TODO {
                 );
             }
 
+            std::string holder = std::string("Configuration '");
+            holder += flags[0] + "' was set to '" + flags[1] + "'.";
+
+            auto message = logger.log_message(holder);
+            logger.generate(message);
+
             file.write(content.c_str());
             dialog::report(report_types::success, "%s set to %s.", flags[0].c_str(), flags[1].c_str());
             return true;
@@ -349,15 +386,25 @@ namespace TODO {
                 throw todo_file_exception("Usage: todo switch <task number>");
 
             const unsigned int number = parse_task_number(flags.front());
+            
             TODOConfig config;
             const std::size_t count = config.read_count();
+
             auto tasks = read_tasks();
             validate_task_count(tasks, count);
+
             if (number > count)
                 throw todo_file_exception("Task number does not exist.");
 
             tasks[number - 1].checked = !tasks[number - 1].checked;
+
+            std::string holder = std::string(((tasks[number -1].checked) ? "Checked" : "Unchecked"));
+            holder += " task '" + tasks[number - 1].title + "', of number " + std::to_string(number) + ".";
+            
             write_tasks(tasks);
+
+            auto message = logger.log_message(holder);
+            logger.generate(message);
             
             dialog::report(report_types::success, "Task %u is now %s.", number, tasks[number - 1].checked ? "checked" : "unchecked");
             return true;
@@ -396,6 +443,91 @@ namespace TODO {
                 TODO::report_types::log, "Actual count: %llu",
                 static_cast<unsigned long long>(count)
             );
+            return true;
+        }
+    };
+
+    class edit_command: public basic_command {
+    public:
+        using basic_command::basic_command;
+
+        bool run() override {
+            if (flags.empty()) {
+                dialog::report(report_types::error, "no argument was given.");
+                return false;
+            }
+
+            if (flags.size() <= 1) {
+                dialog::report(report_types::error, "too few arguments.");
+                return false;
+            }
+
+            if (flags.size() != 2) {
+                dialog::report(report_types::error, "too many arguments!");
+                return false;
+            }
+
+            WFile file = WFile(TODO_FILE);
+
+            int index = std::stoi(flags[0]);
+
+            if (index <= 0) {
+                dialog::report(report_types::error, "wrong index was given: %d", index);
+                return false;
+            }
+
+            const std::string previous_content = file.read(index);
+            std::string content = previous_content;
+
+            const std::size_t status_end = content.find(']');
+            if (status_end == std::string::npos)
+                throw todo_file_exception("Task status is missing from the selected line.");
+
+            std::size_t title_start = status_end + 1;
+            if (title_start < content.size() && content[title_start] == '.')
+                ++title_start;
+            while (title_start < content.size() &&
+                (content[title_start] == ' ' || content[title_start] == '\t')) {
+                ++title_start;
+            }
+
+            std::string copy = content;
+            content.replace(title_start, content.size() - title_start, flags[1]);
+
+            std::string holder = std::string("Edited task of number ");
+            holder += std::to_string(index) + ", from '" + copy + "' to '" + content + "'.";
+
+            auto message = logger.log_message(holder);
+            logger.generate(message);
+
+            file.print(content.c_str(), index);
+
+            dialog::report(report_types::info,
+                "Task of number %d was edited.\n",
+                index, previous_content.c_str(), content.c_str());
+
+            return true;
+        }
+    };
+
+    class check_command: public basic_command {
+    public:
+        using basic_command::basic_command;
+
+        bool run() override {
+            if (!flags.empty())
+                throw todo_file_exception("Usage: todo check");
+
+            TODOConfig config;
+            const std::size_t count = config.read_count();
+            const auto tasks = read_tasks();
+            validate_task_count(tasks, count);
+
+            auto message = logger.log_message("Validated Todofile repository.");
+            logger.generate(message);
+
+            dialog::report(report_types::success, 
+                "Todofile repository is valid (%llu tasks).", static_cast<unsigned long long>(count));
             return true;
         }
     };

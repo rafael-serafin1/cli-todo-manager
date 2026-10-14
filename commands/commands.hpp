@@ -9,6 +9,7 @@ namespace TODO {
     class TODOCommand {
     private:
         TODOParser::__TODO_CLI__ cli;
+   
 
     public:
         TODOCommand(TODOParser::__TODO_CLI__ _Struct): cli(_Struct) { }
