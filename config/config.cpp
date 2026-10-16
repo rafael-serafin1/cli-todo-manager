@@ -30,16 +30,38 @@ namespace TODO {
 
     void TODO::TODOConfig::increment_count() {
         const std::size_t count = read_count();
+
         if (count == std::numeric_limits<std::size_t>::max())
             throw todo_file_exception("Task count is too large.");
+
         write_count(count + 1);
+    }
+
+    void TODO::TODOConfig::increment_count(const int amount) {
+        const std::size_t count = read_count();
+
+        if (count == std::numeric_limits<std::size_t>::max())
+            throw todo_file_exception("Task count is too large.");
+
+        write_count(count + amount);
     }
 
     void TODO::TODOConfig::decrement_count() {
         const std::size_t count = read_count();
+
         if (count == 0)
             throw todo_file_exception("Cannot decrement an empty task count.");
+
         write_count(count - 1);
+    }
+
+    void TODO::TODOConfig::decrement_count(const int amount) {
+        const std::size_t count = read_count();
+
+        if (count == 0)
+            throw todo_file_exception("Cannot decrement an empty task count.");
+
+        write_count(count - amount);
     }
 
     TODO::Todofile_Config TODO::TODOConfig::read_config() {

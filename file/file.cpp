@@ -159,6 +159,16 @@ namespace TODO {
         close();
     }
 
+    void WFile::create(void) {
+        const std::string mode = "w" + find_mode(_path.c_str()) + "x";
+        FILE* f = fopen(_path.c_str(), mode.c_str());
+
+        if (f == NULL)
+            throw TODO::todo_file_exception("File already exists!");
+
+        fclose(f);
+    }
+
     void WFile::create(const char* _Path) {
         const std::string mode = "w" + find_mode(_Path) + "x";
         FILE* f = fopen(_Path, mode.c_str());

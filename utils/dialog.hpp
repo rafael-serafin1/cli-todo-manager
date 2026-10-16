@@ -10,6 +10,11 @@
 
 #define MODELO_ESC_RGB      "\033[38;2;R;G;Bm"
 
+#define BOLD_ESC        "\x1b[1m"
+#define FAINT_ESC       "\x1b[2m"
+#define ITALIC_ESC      "\x1b[3m"
+#define UNDERLINE_ESC   "\x1b[4m"
+
 namespace TODO {
     enum class dialog_types {
         red,
@@ -26,7 +31,8 @@ namespace TODO {
         magenta,
         purple,
         gray,
-        grey
+        grey,
+        orange
     };
     
     enum class report_types {
@@ -36,7 +42,8 @@ namespace TODO {
         info,
         debug,
         ignorable,
-        log
+        log,
+        unknown
     };
 
     class dialog {
@@ -60,7 +67,8 @@ namespace TODO {
             case dialog_types::purple:      return "\033[35m";
 
             case dialog_types::gray:        return "\033[38;2;80;80;80m";
-            case dialog_types::grey:        return "\033[38;2;255;152;0m";
+            case dialog_types::grey:        return "\033[38;2;180;180;180m";
+            case dialog_types::orange:      return "\033[38;2;255;152;0m";
             }
 
             return "\033[0m";
@@ -90,7 +98,7 @@ namespace TODO {
                 return color(dialog_types::white);
             }
 
-            return color(dialog_types::white);
+            return color(dialog_types::black);
         }
 
         static const char* report_prefix(report_types type) {
@@ -121,7 +129,7 @@ namespace TODO {
         }
 
     public:
-        static void message(dialog_types _MessageType,const char* _MessageContent, ...) {
+        static void message(dialog_types _MessageType, const char* _MessageContent, ...) {
             va_list args;
             va_start(args, _MessageContent);
 
@@ -137,7 +145,7 @@ namespace TODO {
                     << '\n';
         }
 
-        static void report(report_types _MessageType,const char* _MessageContent, ...) {
+        static void report(report_types _MessageType, const char* _MessageContent, ...) {
             va_list args;
             va_start(args, _MessageContent);
 
@@ -161,6 +169,11 @@ namespace TODO {
                 << "\033[0m "
                 << buffer
                 << '\n';
+        }
+
+        static std::string output(dialog_types _Type, const char* _Message) {
+            const char* esc = color(_Type);   
+            return std::string(esc) + _Message + "\x1b[0m";
         }
     };
 }

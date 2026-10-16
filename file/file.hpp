@@ -41,7 +41,7 @@ namespace TODO {
 
         void check() {
             if (_file == nullptr)
-                throw TODO::todo_file_exception("Não foi possível abrir o arquivo.");
+                throw TODO::todo_file_exception("Wasn't possible to open the file");
         }
 
     public:
@@ -54,11 +54,13 @@ namespace TODO {
         void print(const char* _Content, const int _Line);
 
         void append(const char* _Content);
+
         std::string read();
         std::string read(const int _Line);
 
         std::vector<std::string> read_lines();
 
+        void create();
         void create(const char* _Path);
     };
 }

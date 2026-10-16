@@ -20,8 +20,6 @@ namespace TODO {
         const char* count_path   = COUNTER_FILE;
         const char* config_path  = CONFIG_FILE;
 
-        void write_count(std::size_t count);
-
     public:    
         ~TODOConfig() {
             if (file_writer != nullptr)
@@ -29,11 +27,17 @@ namespace TODO {
         }
         
         std::size_t read_count();
+
         void increment_count();
+        void increment_count(const int amount);
+
         void decrement_count();
+        void decrement_count(const int amount);
+
         void set_config(TODO::TODOConfig config);
-        void save_config();
         TODO::Todofile_Config read_config();
+
+        void write_count(std::size_t count);
     };
 }
 

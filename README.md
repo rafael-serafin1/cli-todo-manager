@@ -2,7 +2,7 @@
 
 # ✅ Todo CLI Manager
 
-*A fast, lightweight and configurable task manager for the terminal, written entirely in C.*
+*A fast, lightweight and configurable task manager for the terminal, written entirely in C++.*
 
 ![Language](https://img.shields.io/badge/language-C++-blue.svg)
 ![Platform](https://img.shields.io/badge/platform-Linux%20%7C%20Windows-green.svg)
@@ -59,7 +59,7 @@ git clone https://github.com/your-user/todo-cli.git
 Compile:
 
 ```bash
-gcc src/*.c -o todo
+make all
 ```
 
 or using your preferred build system.
@@ -301,9 +301,8 @@ todo list
 
 Output
 
-```
+```todo
 1. [ ] Implement parser
-
 2. [ ] Fix memory leak
 ```
 
@@ -313,10 +312,20 @@ Complete a task
 todo switch "1"
 ```
 
-```
+```todo
 1. [X] Implement parser
-
 2. [ ] Fix memory leak
+```
+
+Add a task that was already completed
+```bash
+todo add "Document code" --done
+```
+
+```todo
+1. [X] Implement parser
+2. [ ] Fix memory leak
+3. [X] Document code
 ```
 
 ---
@@ -338,7 +347,8 @@ Todo CLI Manager follows a different philosophy:
 # Roadmap
 
 - [X] Task editing
-- [ ] Due dates
+- [X] Due dates
+- [X] Subtasks
 - [ ] Task priorities
 - [ ] Categories
 - [ ] Colored output

@@ -14,12 +14,12 @@ todo config <CONFIGS>   # define configurations for Todofile
 
 - To add a task:
 ```bash
-todo add "<TASK>"     # adds a task to Todofile, aways use " "
+todo add "<TASK>"           # adds a task to Todofile, aways use " "
 ```
 
-- To remove a task (not recomended): 
+- To remove a task: 
 ```bash
-todo remove "<INDEX>"     # removes a task by index, aways use " "
+todo remove "<INDEX>"       # removes a task by index, aways use " "
 ```
 
 - To list all tasks:
@@ -34,32 +34,26 @@ todo list --all         # list every task (-a is an alias)
 - To check or uncheck a task:
 ```bash
 todo switch "<INDEX>"    # aways inside " "
-todo switch "<INDEX>"    # same here
+todo switch "<INDEX>"    
 ```
 
-## Important flags:
+## Important arguments:
 
-**'config' command flags =**
+**'config' command arguments =**
 ```bash
-todo config -r -v -c  
-```
-
-or 
-
-```bash
-todo config --readable --checkable    
+todo config <readable|checkable> <value>
 ```
 
 ### Resume
 
-`--readable` => 
+`readable` => 
 ```
     false: record tasks in binary
 
     true: record tasks in normal text
 ```
 
-`--checkable` =>
+`checkable` =>
 ```
     false: Tasks are recorded normalized
 
@@ -68,19 +62,24 @@ todo config --readable --checkable
 
 ### Default values
 ```
--r ==> true
--c ==> true
+readable  ==> true
+checkable ==> true
 ```
 
 **'list' command flags =**
 ```bash
-todo list -a -c -un
+todo list -a -c -un -l
 ```
 
 or
 
 ```bash
-todo list --all --checked --unchecked
+todo list --all --checked --unchecked --logs
 ```
 
 ### Resume
+
+--all       ==> mostra todas as tarefas
+--checked   ==> mostra todas as tarefas marcadas
+--unchecked ==> mostra todas as tarefas desmarcadas
+--logs      ==> mostra todos os logs acumulados

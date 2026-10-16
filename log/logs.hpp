@@ -12,43 +12,23 @@
 #include "../utils/dialog.hpp"
 #include "../file/file.hpp"
 #include "../macros/macros.hpp"
+#include "../utils/date_time.hpp"
 
 class log_generator {
 private:
-    std::time_t log_date;
-    std::tm*    log_local;
-
-    int year;
-    int month;
-    int day;
-    
-    int hour;
-    int minute;
-    int seconds;
-
 public:
-    log_generator():
-        log_date(std::time(nullptr))
-    {
-        log_local = std::localtime(&log_date);
-        
-        year  = log_local->tm_year + 1900;
-        month = log_local->tm_mon  + 1;
-        day   = log_local->tm_mday;
-
-        hour    = log_local->tm_hour;
-        minute  = log_local->tm_min;
-        seconds = log_local->tm_sec;
-    }
+    log_generator() { }
 
     ~log_generator() { }
 
     const char* log_message(const std::string& Additional) {
-        char* buffer = new char[2048];
-        
-        std::sprintf(buffer, "%d-%d-%d %d:%d:%d %s", year, day, month, hour, minute, seconds, Additional.c_str());
+        date_time dt;
 
-        return buffer;
+        std::string log = std::string(dt.now());
+        log = log + " " + Additional;
+
+        const char* Log = log.c_str();
+        return Log;
     }
 
     void generate(const char* _Message) {
@@ -59,7 +39,11 @@ public:
         std::string path = std::string(LOG_DIRECTORY);
         path += '/';
     #endif
+        date_time dt;
+
         std::ostringstream stream;
+        auto log_local = dt.get_time();
+
         stream << std::put_time(log_local, "%m-%d-%y");
 
         path += stream.str() + ".log";
