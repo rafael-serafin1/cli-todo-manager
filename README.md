@@ -177,6 +177,17 @@ Removes the task with the specified index.
 
 ---
 
+## Edit a subtask
+
+```bash
+todo subtask edit <SUBTASK_ID>
+```
+
+The command prompts for the subtask description, parent task ID, priority,
+status, and due date. Enter `--` at any prompt to keep the current value.
+
+---
+
 ## List tasks
 
 ```bash

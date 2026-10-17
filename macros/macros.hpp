@@ -26,7 +26,7 @@
     X("subtask", "--done",       "-d")                           \
     X("restore", "--repo",       "-r")                           \
     X("restore", "--count",      "-c")                           \
-    X("restore", "--sub",        "-s")
+    X("restore", "--sub",        "-s")                           
 
 
 #ifdef _WIN32

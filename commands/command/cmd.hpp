@@ -11,6 +11,7 @@
 #include <charconv>
 #include <filesystem>
 #include <iostream>
+#include <limits>
 #include <string>
 #include <system_error>
 #include <vector>
@@ -484,31 +485,36 @@ namespace TODO {
 
         bool run() override {
             if (flags.size() > 1)
-                throw todo_file_exception("Usage: todo count [--checked|--unchecked|--logs]");
+                throw todo_file_exception("Usage: todo count [--checked|--unchecked|--logs|--subtasks]");
 
             TODOConfig config;
             std::size_t count = config.read_count();
             if (!flags.empty()) {
-                if (flags.front() == "--checked" || flags.front() == "-c") {
+                if (has_flag(flags, "--checked", "-c")) {
                     const auto tasks = read_tasks();
                     validate_task_count(tasks, count);
                     count = 0;
                     for (const auto& task : tasks)
                         count += task.checked ? 1 : 0;
                 } 
-                else if (flags.front() == "--unchecked" || flags.front() == "-un") {
+                else if (has_flag(flags, "--unchecked", "-un")) {
                     const auto tasks = read_tasks();
                     validate_task_count(tasks, count);
                     count = 0;
                     for (const auto& task : tasks)
                         count += task.checked ? 0 : 1;
                 } 
-                else if (flags.front() == "--logs" || flags.front() == "-l") {
+                else if (has_flag(flags, "--logs", "-l")) {
                     count = 0;
                     for (const auto& i: fs::directory_iterator(LOG_DIRECTORY))
                         if (i.is_regular_file() && i.path().extension() == ".log")
                             ++count;
                 } 
+                else if (has_flag(flags, "--subtasks", "-st")) {
+                    subtask_handler handler;
+                    const auto& st = handler.read_subtasks();
+                    count = st.size();
+                }
                 else {
                     throw todo_file_exception("Unexpected flag: '" + flags.front() + "'");
                 }
@@ -678,6 +684,9 @@ namespace TODO {
         }
 
         void recreate_subtasks(bool affirmative) {
+            if (!affirmative)
+                return;
+
             if (!fs::exists(".todo/subtasks.db") && affirmative) {
                 subtask_handler h; 
                 h.create_database();
@@ -790,14 +799,14 @@ namespace TODO {
                 for (const auto& i: subtasks) 
                     show_info(i);
             } 
-            else if (has_flag(flags, "--id", "-id")) {
+            else if (has_flag(flags, "--id", "-i")) {
                 if (flags.size() < 3)
                     throw todo_file_exception("No subtask ID was provided.");
 
                 const unsigned int id  = parse_task_number(flags[2]);
                 const auto& subtask    = handler.read_subtask(id);
 
-                show_info(subtask);
+                show_all_info(subtask);
             } 
             else if (has_flag(flags, "--priority", "-p")) {
                 if (flags.size() < 3)
@@ -806,6 +815,9 @@ namespace TODO {
                 std::string priority = flags[2];
                 const auto& subtasks = handler.read_subtasks();
                 const auto& fetched  = fetch_priority(subtasks, subtask::to_priority(priority.c_str()));
+
+                if (fetched.size() <= 0)
+                    dialog::report(report_types::warn, "No subtasks was found with '%s' priority.", priority.c_str());
 
                 for (const auto& i: fetched) 
                     show_info(i);
@@ -818,12 +830,17 @@ namespace TODO {
                 const auto& subtasks = handler.read_subtasks();
                 const auto& fetched  = fetch_status(subtasks, subtask::to_status(status.c_str()));
 
+                if (fetched.size() <= 0)
+                    dialog::report(report_types::warn, "No subtasks was found with '%s' status.", status.c_str());
+
                 for (const auto& i: fetched) 
-                    dialog::report(
-                        report_types::debug, "Subtask %d from task %d -> '%s' | %s | %s", i.id, i.task_id, i.subtask.c_str(), subtask::stringfy(i.priority), subtask::stringfy(i.status));
+                    show_all_info(i);
             }
             else {
                 const auto& subtasks = handler.read_subtasks();
+
+                if (subtasks.size() <= 0)
+                    dialog::report(report_types::warn, "No subtasks were cataloged.");
 
                 for (const auto& i: subtasks) 
                     show_info(i);
@@ -832,8 +849,76 @@ namespace TODO {
             return true;
         }
 
+        /**
+         * Expected command line:
+         *      todo subtask edit <ID>
+         * <ID> --> subtask ID
+         */
+        bool edit() {
+            const unsigned int parsed_subtask_id = parse_task_number(flags[1]);
+            if (parsed_subtask_id > static_cast<unsigned int>(std::numeric_limits<int>::max()))
+                throw todo_file_exception("Subtask ID is too large.");
+
+            const int subtask_id = static_cast<int>(parsed_subtask_id);
+            subtask original = handler.read_subtask(subtask_id);
+            count = config.read_count();
+            const auto tasks = read_tasks();
+            validate_task_count(tasks, count);
+
+            std::cout << "Enter '--' to keep the current value.\n";
+            
+            std::string description = flags[2];
+            if (description == "--")
+                description = original.subtask;
+
+            std::cout << "Task ID: ";
+            std::string holder;
+            std::cin >> holder;
+
+            unsigned int task_id = static_cast<unsigned int>(original.task_id);
+            if (holder != "--") {
+                task_id = parse_task_number(holder);
+                if (task_id > count)
+                    throw todo_file_exception("Task number does not exist.");
+            }
+
+            std::cout << "Priority: ";
+            std::string p;
+            std::cin >> p;
+
+            if (p == "--")
+                p = subtask::stringfy(original.priority);
+
+            std::cout << "Status: ";
+            std::string s;
+            std::cin >> s;
+
+            if (s == "--")
+                s = subtask::stringfy(original.status);
+
+            std::cout << "Due date: ";
+            std::string dd;
+            std::cin >> dd;
+            if (dd == "--")
+                dd = original.due_date;
+
+            original.task_id = static_cast<int>(task_id);
+            original.subtask = description;
+            original.priority = subtask::to_priority(p.c_str());
+            original.due_date = dd;
+            original.status = subtask::to_status(s.c_str());
+
+            subtask updated = handler.edit_subtask(subtask_id, original);
+
+            show_all_info(updated);
+
+            return true;
+        }
+
         std::vector<subtask> fetch_priority(const std::vector<subtask>& subtasks, const subtask::subtask_priority priority) {
             std::vector<subtask> result;
+
+            dialog::report(report_types::debug, "Priority type: %s", subtask::stringfy(priority));
 
             for (const auto& i: subtasks) 
                 if (i.priority == priority) 
@@ -856,7 +941,7 @@ namespace TODO {
         /**
          * Expected command line: 
          *      todo subtask "<SUBCOMMAND>" 
-         * <SUBCOMMAND> --> add/remove/list
+         * <SUBCOMMAND> --> add/remove/list/edit
          */
 
 
@@ -877,20 +962,16 @@ namespace TODO {
                 this->remove();
             } else if (flags[0] == "list") {
                 this->list();
+            } else if (flags[0] == "edit")  {
+                if (flags.size() < 2)
+                    throw todo_file_exception("No subtask ID was provided.");
+
+                this->edit();
             }
             else {
                 throw todo_file_exception("Unknown subcommand called '" + flags[0] + "'.");
             }
 
-            return true;
-        }
-    };
-
-    class priority_command: public basic_command {
-    public:
-        using basic_command::basic_command;
-
-        bool run() override {
             return true;
         }
     };

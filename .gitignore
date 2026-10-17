@@ -3,6 +3,7 @@
 /dist
 /build
 /.vscode
+/include
 
 # arquivos
 *.env

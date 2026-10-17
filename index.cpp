@@ -1,5 +1,6 @@
 #include <iostream>
 #include <string>
+#define DEBUG 1
 
 #ifdef _WIN32
     #include <windows.h>

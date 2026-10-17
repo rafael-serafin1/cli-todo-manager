@@ -189,13 +189,31 @@ namespace TODO {
     }
 
     void show_info(subtask st) {
-            dialog::report(report_types::success, "Subtask %d -> '%s' | %s | %s", 
-                st.id, st.subtask.c_str(), subtask::format_output(st.priority).c_str(), subtask::color_output(st.status).c_str());
-        }
+        dialog::report(report_types::success, "Subtask '%d' -> '%s' | %s | %s",
+            st.id, st.subtask.c_str(), subtask::format_output(st.priority).c_str(), subtask::color_output(st.status).c_str());
+    }
+
+    void show_all_info(subtask st) {
+        dialog::report(report_types::success, "Subtask '%d' from task %d -> '%s' | %s | %s",
+            st.id, st.task_id, st.subtask.c_str(), subtask::format_output(st.priority).c_str(), subtask::color_output(st.status).c_str());
+    }
 
     class subtask_handler {
     private:
         sqlite3* db = nullptr;
+
+        void open_database() {
+            if (db)
+                return;
+
+            if (sqlite3_open(TODO_SUBTASKS, &db) != SQLITE_OK) {
+                const std::string error = db ? sqlite3_errmsg(db) : "Unable to allocate database connection.";
+                if (db)
+                    sqlite3_close(db);
+                db = nullptr;
+                throw todo_file_exception("Error opening subtask database: " + error);
+            }
+        }
 
         const char* get_text(sqlite3_stmt *stmt, int column) {
             const auto* value = sqlite3_column_text(stmt, column);
@@ -227,21 +245,36 @@ namespace TODO {
         }
 
         void create_database() {
-            int result = sqlite3_open(TODO_SUBTASKS, &db);
-             
-            if (result != SQLITE_OK) {
-                sqlite3_close(db);
-                throw todo_file_exception("Error during database creation.");
-            }
+            open_database();
         }
 
         void create_table() {
-            TODO::WFile f = TODO::WFile("./commands/command/subtasks/sql/create.sql");
             char* error_message = nullptr;
         
-            const auto& query = f.read();
+            const auto* query = R"(
+                CREATE TABLE IF NOT EXISTS subtask (
+                    subtask_id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    task_id    INTEGER NOT NULL,
+                    subtask    TEXT NOT NULL,
+                    priority   TEXT NOT NULL DEFAULT 'none',
+                    
+                    date_implemented DATE NOT NULL DEFAULT (DATE('now')),
+                    due_date         DATE NULL,
+                    date_completed   DATE NULL,
+                    status          TEXT NOT NULL DEFAULT 'pending',
+
+                    CONSTRAINT ck_subtask_priority 
+                        CHECK (priority IN ('none', 'low', 'medium', 'high', 'urgent')),
+
+                    CONSTRAINT ck_subtask_task_id 
+                        CHECK (task_id > 0),
+
+                    CONSTRAINT ck_subtask_status 
+                        CHECK (status IN ('pending', 'in_progress', 'completed', 'on_hold', 'cancelled'))
+                );
+            )";
             
-            int result = sqlite3_exec(db, query.c_str(), nullptr, nullptr, &error_message);
+            int result = sqlite3_exec(db, query, nullptr, nullptr, &error_message);
 
             if (result != SQLITE_OK) {
                 sqlite3_free(error_message);  
@@ -255,14 +288,15 @@ namespace TODO {
             if (subtask.task_id <= 0)
                 throw todo_file_exception("Subtasks can't have an ID below or equals 0.");
             
-            sqlite3_open(TODO_SUBTASKS, &db);
-
-            WFile f("./commands/command/subtasks/sql/insert.sql");
-            auto query = f.read();
+            open_database();
+            const char* query = R"(
+                INSERT INTO subtask(task_id, subtask, priority, due_date, status) VALUES 
+                (?, ?, ?, ?, ?);
+            )";
 
             sqlite3_stmt* rstmt = nullptr;
 
-            if (sqlite3_prepare_v2(db, query.c_str(), -1, &rstmt, nullptr) != SQLITE_OK)
+            if (sqlite3_prepare_v2(db, query, -1, &rstmt, nullptr) != SQLITE_OK)
                 throw todo_file_exception("Error during query preparation.");
             
             auto stmt = std::unique_ptr<sqlite3_stmt, decltype(&sqlite3_finalize)>(rstmt, sqlite3_finalize);
@@ -279,11 +313,10 @@ namespace TODO {
                 throw todo_file_exception("Error binding priority.");
 
             bind_date(stmt.get(), 4, subtask.due_date);
-            bind_date(stmt.get(), 5, subtask.date_compl);
 
             const char* status   = subtask::stringfy(subtask.status);
 
-            if (sqlite3_bind_text(stmt.get(), 6, status, -1, SQLITE_TRANSIENT) != SQLITE_OK)
+            if (sqlite3_bind_text(stmt.get(), 5, status, -1, SQLITE_TRANSIENT) != SQLITE_OK)
                 throw todo_file_exception("Error binding status.");
                 
             if (sqlite3_step(stmt.get()) != SQLITE_DONE)
@@ -316,10 +349,10 @@ namespace TODO {
                 WHERE subtask_id = ?;
             )";
 
-            sqlite3_open(TODO_SUBTASKS, &db);
+            open_database();
             sqlite3_stmt* rstmt = nullptr;
 
-            if (sqlite3_prepare_v2(db, query, -1, &rstmt, nullptr) != SQLITE_OK) 
+            if (sqlite3_prepare_v2(db, query, -1, &rstmt, nullptr) != SQLITE_OK)
                 throw todo_file_exception("Error during query preparation.");
 
             std::unique_ptr<sqlite3_stmt, decltype(&sqlite3_finalize)> stmt(rstmt, sqlite3_finalize);
@@ -372,7 +405,7 @@ namespace TODO {
                 WHERE task_id = ?;
             )";
 
-            sqlite3_open(TODO_SUBTASKS, &db);
+            open_database();
             sqlite3_stmt* rstmt = nullptr;
 
             if (sqlite3_prepare_v2(db, query, -1, &rstmt, nullptr) != SQLITE_OK) 
@@ -414,7 +447,7 @@ namespace TODO {
             if (subtask_id <= 0)
                 throw todo_file_exception("Not a valid id.");
 
-            sqlite3_open(TODO_SUBTASKS, &db);
+            open_database();
             const char* query = R"(DELETE FROM subtask WHERE subtask_id = ?)";
 
             auto Subtask = this->read_subtask(subtask_id);
@@ -459,7 +492,7 @@ namespace TODO {
                 FROM subtask
             )";
 
-            sqlite3_open(TODO_SUBTASKS, &db);
+            open_database();
             sqlite3_stmt* rstmt = nullptr;
 
             if (sqlite3_prepare_v2(db, query, -1, &rstmt, nullptr) != SQLITE_OK) 
@@ -492,6 +525,63 @@ namespace TODO {
                 throw todo_file_exception("Error reading subtasks.");
 
             return returned;
+        }
+
+        subtask edit_subtask(const int subtask_id, subtask now) {
+            if (now.task_id <= 0)
+                throw todo_file_exception("Subtasks can't have an ID below or equals 0.");
+
+            subtask old = read_subtask(subtask_id);
+            now.id = subtask_id;
+
+            const char* query = R"(
+                UPDATE subtask
+                SET task_id             = ?,
+                    subtask             = ?,
+                    priority            = ?,
+                    due_date            = ?,
+                    status              = ?
+                WHERE subtask_id = ?
+            )";
+
+            sqlite3_stmt* rstmt = nullptr;
+
+            if (sqlite3_prepare_v2(db, query, -1, &rstmt, nullptr) != SQLITE_OK)
+                throw todo_file_exception("Error during query preparation.");
+
+            std::unique_ptr<sqlite3_stmt, decltype(&sqlite3_finalize)> stmt(rstmt, sqlite3_finalize);
+
+            if (sqlite3_bind_int(stmt.get(), 1, now.task_id) != SQLITE_OK)
+                throw todo_file_exception("Error binding 'task_id'.");
+
+            if (sqlite3_bind_text(stmt.get(), 2, now.subtask.c_str(), -1, SQLITE_TRANSIENT) != SQLITE_OK)
+                throw todo_file_exception("Error binding 'subtask'.");
+
+            const char* priority = subtask::stringfy(now.priority);
+
+            if (sqlite3_bind_text(stmt.get(), 3, priority, -1, SQLITE_TRANSIENT) != SQLITE_OK)
+                throw todo_file_exception("Error binding 'priority'.");
+            bind_date(stmt.get(), 4, now.due_date);
+
+            const char* status   = subtask::stringfy(now.status);
+
+            if (sqlite3_bind_text(stmt.get(), 5, status, -1, SQLITE_TRANSIENT) != SQLITE_OK)
+                throw todo_file_exception("Error binding 'status'.");
+
+            if (sqlite3_bind_int(stmt.get(), 6, subtask_id) != SQLITE_OK)
+                throw todo_file_exception("Error binding 'subtask_id'.");
+
+            if (sqlite3_step(stmt.get()) != SQLITE_DONE)
+                throw todo_file_exception("Error editing subtask: " + std::string(sqlite3_errmsg(db)));
+
+            dialog::report(report_types::info, "Subtask '%s' edited successfully.", now.subtask.c_str());
+
+            log_generator l = log_generator();
+            auto msg = 
+                l.log_message("Subtask '" + std::to_string(subtask_id) + "' was edited, changing from '" + old.subtask + "' to '" + now.subtask + "'.");
+            l.generate(msg);
+
+            return now;
         }
     };
 }
