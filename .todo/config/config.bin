@@ -1,3 +1,4 @@
 checkable=true
 readable=true
+editable=false
 nosql=false

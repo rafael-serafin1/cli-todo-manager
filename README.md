@@ -1,324 +1,325 @@
+<div align="center">
+
 # Todo CLI Manager
 
-Gerencie tarefas e subtarefas diretamente pelo terminal com um executável leve, escrito em C++20. Os dados das tarefas principais ficam em um `Todofile` no diretório de trabalho; subtarefas, configurações e logs são mantidos localmente em `.todo/`.
+**A local-first command-line task manager written in C++20.**
 
-[![C++](https://img.shields.io/badge/C%2B%2B-20-00599C?logo=cplusplus&logoColor=white)](https://isocpp.org/)
-[![Build](https://img.shields.io/badge/build-Makefile-427819)](#instalação)
-[![Plataformas](https://img.shields.io/badge/plataformas-Windows%20%7C%20Linux%20%7C%20macOS-2ea44f)](#requisitos)
+[![C++20](https://img.shields.io/badge/C%2B%2B-20-00599C?logo=cplusplus&logoColor=white)](https://isocpp.org/)
+[![Platform](https://img.shields.io/badge/platform-Windows-0078D4?logo=windows&logoColor=white)](#requirements)
+[![Build](https://img.shields.io/badge/build-Makefile-427819)](#build)
 
-## Índice
+</div>
 
-- [Recursos](#recursos)
-- [Requisitos](#requisitos)
-- [Instalação](#instalação)
-- [Primeiros passos](#primeiros-passos)
-- [Comandos](#comandos)
-- [Subtarefas](#subtarefas)
-- [Arquivos e persistência](#arquivos-e-persistência)
-- [Limitações conhecidas](#limitações-conhecidas)
-- [Contribuição](#contribuição)
-- [Licença](#licença)
-- [Créditos](#créditos)
+Todo CLI Manager stores main tasks in a plain-text `Todofile` in the current
+project directory. Subtasks, configuration, and operation logs are stored
+locally in `.todo/`. Subtasks can use either the bundled SQLite engine or a
+JSON file backend.
 
-## Recursos
+## Table of contents
 
-- Criar, listar, editar, concluir, reabrir e remover tarefas.
-- Filtrar tarefas concluídas ou pendentes e contar tarefas e subtarefas.
-- Organizar subtarefas com prioridade, status e data de vencimento.
-- Conferir a integridade do `Todofile` e restaurar partes do repositório local.
-- Consultar logs diários das operações.
-- Manter os dados localmente, sem depender de serviços externos.
+- [Features](#features)
+- [Requirements](#requirements)
+- [Build](#build)
+- [Quick start](#quick-start)
+- [Commands](#commands)
+- [Subtasks](#subtasks)
+- [Configuration](#configuration)
+- [Storage formats](#storage-formats)
+- [Repository repair](#repository-repair)
+- [Project files](#project-files)
+- [Known limitations](#known-limitations)
+- [Contributing](#contributing)
+- [License](#license)
+- [Acknowledgments](#acknowledgments)
 
-## Requisitos
+## Features
 
-- Compilador GCC/G++ com suporte a C++20.
-- `make`.
-- No Windows, uma distribuição MinGW-w64 compatível com `g++` e `-municode`.
+- Add, edit, list, complete, reopen, and remove numbered tasks.
+- Filter tasks by completion state and count tasks, subtasks, or log files.
+- Create subtasks with a due date, priority, and status.
+- Store subtasks in SQLite or JSON.
+- Check task-file integrity and restore local repository files.
+- Keep task data and logs on the local machine.
 
-O SQLite usado para persistir subtarefas está incluído no repositório (`include/sqlite3.c` e `include/sqlite3.h`); não é necessário instalar a biblioteca separadamente.
+## Requirements
 
-## Instalação
+- Windows.
+- GCC/G++ with C++20 support and `make` (for example, MinGW-w64).
+- Python 3 and the Windows Python launcher (`py -3`) when using the JSON
+  subtask backend.
 
-Clone o repositório e compile a partir da pasta do projeto:
+SQLite's C source and header are included in the repository, so no separate
+SQLite installation is needed.
 
-```bash
-git clone https://github.com/rafael-serafin1/cli-todo-manager.git
-cd cli-todo-manager
+## Build
+
+From the repository root, compile the bundled SQLite source and the application:
+
+```powershell
 make run
 ```
 
-O alvo `make run` compila o SQLite incluído e gera o executável em `bin/todo` (ou `bin/todo.exe` no Windows). Para consultar os comandos usando o executável recém-compilado:
+The executable is written to `bin/todo.exe`. Run it from a project directory
+that contains (or will contain) its own `Todofile`:
 
-```bash
-# Linux/macOS
-./bin/todo help
-
-# Windows PowerShell
-.\bin\todo.exe help
+```powershell
+..\path\to\cli-to-do-manager\bin\todo.exe help
 ```
 
-Para executar `todo` sem informar o caminho completo, adicione a pasta `bin` ao `PATH` ou copie o executável para um diretório que já esteja nele.
+Alternatively, add the executable's directory to `PATH` and use `todo`.
 
-## Primeiros passos
+## Quick start
 
-Execute `todo init` no diretório em que deseja manter suas tarefas. O comando cria o repositório local e o `Todofile`:
+Run these commands from the directory where you want to keep the task list:
 
-```bash
+```powershell
 todo init
-```
-
-This creates the required repository and configuration files.
-
-After that you can configure how Todo behaves.
-
----
-
-# Commands
-
-## Show help
-
-```bash
-todo help
-```
-
-Displays every available command and flag.
-
----
-
-## Check repository integrity
-
-```bash
+todo add "Implement the parser"
+todo add "Write documentation" --done
+todo list
+todo switch 1
 todo check
 ```
 
-Verifies that the task counter matches the tasks in `Todofile` and that task
-entries are valid. This command does not modify repository files.
+Tasks are written to `Todofile` in this format:
 
----
-
-## Restore the Todofile repository
-
-```bash
-todo restore
+```text
+1. [ ] Implement the parser
+2. [X] Write documentation
 ```
 
-Repairs the repository directories and configuration files, recalculates the
-task count from `Todofile`, resets configuration to its defaults, and creates
-or repairs the configured subtask database. Existing task and subtask data is
-preserved.
+Descriptions containing spaces should be quoted. Run `todo help` to list
+commands, or `todo help --specify subtask` for subtask commands and options.
 
-Restore an individual part with `--repo` (`-r`), `--count` (`-c`), `--sub`
-(`-s`), or `--config` (`-cf`).
+## Commands
 
----
-
-## Configure Todo
-
-```bash
-todo config [OPTIONS]
-```
-
-Short flags
-
-```bash
-todo config -r -v -c
-```
-
-Long flags
-
-```bash
-todo config --readable --visible --checkable
-```
-
-### Available options
-
-| Option | Description |
-|---------|-------------|
-| `--readable` | Stores tasks as plain text instead of binary |
-| `--visible` | Stores the Todofile in the project root instead of `.todo/` |
-| `--checkable` | Enables checkbox support for tasks |
-
-Default configuration
-
-```
-Readable  : true
-Visible   : true
-Checkable : true
-```
-
----
-
-## Add a task
-
-```bash
-todo add "Finish README"
-```
-
-Example
-
-```bash
-todo add "Study operating systems"
-```
-
----
-
-## Remove a task
-
-```bash
-todo remove "3"
-```
-
-Removes the task with the specified index.
-
----
-
-## Edit a subtask
-
-```bash
-todo subtask edit <SUBTASK_ID>
-```
-
-The command prompts for the subtask description, parent task ID, priority,
-status, and due date. Enter `--` at any prompt to keep the current value.
-
----
-
-## List tasks
-
-```bash
-todo list
-todo switch 1
-todo count
-```
-
-O `list` mostra até 20 tarefas por padrão; use `todo list --all` para exibir todas. `switch` alterna entre pendente e concluída. Execute `todo help` a qualquer momento para listar os comandos reconhecidos.
-
-> **Dica:** coloque descrições com espaços entre aspas. Os comandos devem ser executados no diretório que contém o `Todofile` do projeto.
-
-## Comandos
-
-| Comando | Descrição |
+| Command | Description |
 | --- | --- |
-| `todo help` | Mostra os comandos disponíveis. |
-| `todo version` | Exibe a versão do executável. |
-| `todo init` | Inicializa o repositório local de tarefas no diretório atual. |
-| `todo add "<descrição>" [--done]` | Adiciona uma tarefa; `--done` (ou `-d`) cria a tarefa como concluída. |
-| `todo list [opções]` | Lista até 20 tarefas por padrão. |
-| `todo remove <número>` | Remove uma tarefa pelo número exibido na lista. |
-| `todo switch <número>` | Alterna o status da tarefa entre concluída e pendente. |
-| `todo edit <número> "<nova descrição>"` | Edita a descrição de uma tarefa. |
-| `todo count [opção]` | Conta tarefas ou consulta contagens filtradas. |
-| `todo config [opção valor]` | Sem argumentos, exibe a configuração; com argumentos, grava uma opção. |
-| `todo check` | Confere a validade das entradas do `Todofile` e a consistência da contagem. |
-| `todo restore [opções]` | Restaura a contagem, a estrutura do repositório e/ou o banco de subtarefas. |
-| `todo subtask <ação> ...` | Cria, lista, edita ou remove subtarefas. Consulte [Subtarefas](#subtarefas). |
+| `todo help` | List available commands. |
+| `todo help --specify <command>` | Show information about a command. |
+| `todo version` | Print the executable version. |
+| `todo init` | Create a `Todofile` and the local `.todo` repository. |
+| `todo init --subtasks` (`-st`) | Create the configured subtask database in an initialized repository. |
+| `todo add "<description>" [--done]` (`-d`) | Add a task, optionally already completed. |
+| `todo list [options]` | Show up to 20 tasks by default. |
+| `todo remove <task-number>` | Remove a task and renumber the remaining tasks. |
+| `todo switch <task-number>` | Toggle a task between completed and pending. |
+| `todo edit <task-number> "<description>"` | Change a task description. |
+| `todo count [option]` | Count tasks, filtered tasks, subtasks, or log files. |
+| `todo config [name value]` | Display or change a configuration value. |
+| `todo check` | Validate task entries and compare them with the stored count. |
+| `todo restore [options]` | Repair repository files and/or the subtask database. |
+| `todo subtask <action> ...` | Add, list, edit, or remove subtasks. |
 
-### Opções de `list`
+### List options
 
-| Opção | Alias | Efeito |
+| Option | Alias | Description |
 | --- | --- | --- |
-| `--all` | `-a` | Lista todas as tarefas. |
-| `--checked` | `-c` | Lista apenas as concluídas. |
-| `--unchecked` | `-un` | Lista apenas as pendentes. |
-| `--logs` | `-l` | Exibe os arquivos de log disponíveis. |
+| `--all` | `-a` | Show all tasks instead of the first 20. |
+| `--checked` | `-c` | Show completed tasks only. |
+| `--unchecked` | `-un` | Show pending tasks only. |
+| `--logs` | `-l` | List available daily log files. |
 
-Exemplos:
-
-```bash
+```powershell
 todo list --all
 todo list --checked
 todo list --unchecked
 todo list --logs
 ```
 
-### Opções de `count`
+### Count options
 
-| Opção | Alias | Efeito |
+| Option | Alias | Description |
 | --- | --- | --- |
-| `--checked` | `-c` | Conta tarefas concluídas. |
-| `--unchecked` | `-un` | Conta tarefas pendentes. |
-| `--logs` | `-l` | Conta arquivos de log. |
-| `--subtasks` | `-st` | Conta subtarefas. |
+| `--checked` | `-c` | Count completed tasks. |
+| `--unchecked` | `-un` | Count pending tasks. |
+| `--logs` | `-l` | Count daily log files. |
+| `--subtasks` | `-st` | Count subtasks in the selected backend. |
 
-```bash
+```powershell
 todo count
 todo count --checked
 todo count --subtasks
 ```
 
-### Configuração e restauração
+## Subtasks
 
-`todo config` sem argumentos mostra os valores atuais. Para gravar uma opção, use:
+A subtask is linked to a numbered task and has its own ID, description,
+priority, status, and due date. Adding one prompts for its due date and
+priority:
 
-```bash
-todo config readable true
-todo config checkable false
+```powershell
+todo subtask add 1 "Review error handling"
 ```
 
-As opções aceitam `true`/`false` e também `on`/`off` ou `1`/`0`.
+Use `--done` (`-d`) to add it with the completed status:
 
-`todo restore` sem opções tenta restaurar a contagem, a estrutura do repositório e o banco de subtarefas. Para selecionar partes específicas, use `--count` (`-c`), `--repo` (`-r`) e `--sub` (`-s`):
-
-```bash
-todo restore --count
-todo restore --repo
-todo restore --sub
+```powershell
+todo subtask add 1 "Confirm the release" --done
 ```
 
-## Subtarefas
+List all subtasks or filter them by parent task, subtask ID, priority, or status:
 
-Subtarefas pertencem a uma tarefa principal e têm identificador próprio, prioridade, status e data de vencimento. Ao criar uma subtarefa, o programa solicita interativamente a data, a prioridade e o status.
-
-```bash
-todo subtask add <número-da-tarefa> "<descrição>"
-```
-
-Prioridades aceitas: `none`, `low`, `medium`, `high` e `urgent`. Status aceitos: `pending`, `in_progress`, `completed`, `on_hold` e `cancelled`. Use `--done` (`-d`) para criar a subtarefa com status concluído.
-
-```bash
+```powershell
 todo subtask list
-todo subtask list --all <número-da-tarefa>
-todo subtask list --id <id-da-subtarefa>
+todo subtask list --all 1
+todo subtask list --id 3
 todo subtask list --priority high
 todo subtask list --status pending
-todo subtask edit <id-da-subtarefa> "<nova descrição>"
-todo subtask remove <id-da-subtarefa>
 ```
 
-Ao editar, o programa solicita os demais campos. Informe `--` em uma solicitação para manter o valor existente.
+Edit or remove a subtask by its ID:
 
-## Arquivos e persistência
+```powershell
+todo subtask edit 3 "Updated description"
+todo subtask remove 3
+```
 
-Os dados são locais ao diretório em que `todo init` foi executado:
+Editing prompts for the description, parent task ID, priority, status, and due
+date. Enter `--` at a prompt to keep its current value. Valid priorities are
+`none`, `low`, `medium`, `high`, and `urgent`. Valid statuses are `pending`,
+`in_progress`, `completed`, `on_hold`, and `cancelled`.
 
-| Caminho | Conteúdo |
+## Configuration
+
+With no arguments, `todo config` prints the current configuration. Set one
+value at a time:
+
+```powershell
+todo config nosql true
+todo config readable true
+todo config checkable true
+```
+
+Boolean values accept `true`/`false`, `on`/`off`, and `1`/`0`.
+
+| Setting | Default | Purpose |
+| --- | --- | --- |
+| `nosql` | `false` | Selects JSON (`true`) or SQLite (`false`) for subtasks. |
+| `readable` | `true` | Stored configuration option for task readability. |
+| `checkable` | `true` | Stored configuration option for task checkboxes. |
+
+The `readable` and `checkable` values are currently stored but do not change
+how main tasks are written; the `Todofile` remains plain text with checkboxes.
+
+## Storage formats
+
+Main tasks always live in the project-root `Todofile`:
+
+```text
+1. [ ] Prepare release notes
+2. [X] Run regression checks
+```
+
+### SQLite subtasks
+
+SQLite is the default backend (`nosql=false`). The database is
+`.todo/subtasks.db`; its `subtask` table contains a generated subtask ID,
+parent task ID, description, priority, implementation date, optional due and
+completion dates, and status. Priority and status are stored as integer enum
+values in SQLite:
+
+| Value | Priority | Status |
+| ---: | --- | --- |
+| 0 | `none` | `pending` |
+| 1 | `low` | `in_progress` |
+| 2 | `medium` | `completed` |
+| 3 | `high` | `on_hold` |
+| 4 | `urgent` | `cancelled` |
+
+### JSON subtasks
+
+Set `nosql` to `true` to select the JSON backend. The worker creates and
+updates `.todo/subtasks.json`. A record has the following shape:
+
+```json
+[
+  {
+    "id": 1,
+    "task_id": 1,
+    "subtask": "Review error handling",
+    "priority": "high",
+    "date_impl": "2026-10-21",
+    "due_date": "2026-10-28",
+    "date_compl": "",
+    "status": "pending"
+  }
+]
+```
+
+The JSON backend invokes `commands/command/subtasks/subtasks.py` through
+`py -3`. To initialize it explicitly, initialize the repository, select JSON,
+then initialize the subtasks store:
+
+```powershell
+todo init
+todo config nosql true
+todo init --subtasks
+```
+
+## Repository repair
+
+`todo check` validates task numbering and checkbox syntax, then verifies that
+the stored task count matches `Todofile`.
+
+`todo restore` repairs the local repository, recalculates the task count,
+resets configuration to defaults, and creates or migrates the configured
+subtask database. The default configuration selects SQLite. Existing
+subtask records are migrated when the selected database is missing and the
+other backend is present.
+
+```powershell
+todo restore
+todo restore --repo
+todo restore --count
+todo restore --sub
+todo restore --config
+```
+
+Aliases are `-r`, `-c`, and `-s`; the configuration option is `-cf`.
+`--config` resets settings to their defaults, including `nosql=false`.
+Use `--sub` alone to recreate or migrate the subtask database using the
+current backend setting.
+
+## Project files
+
+| Path | Purpose |
 | --- | --- |
-| `Todofile` | Tarefas principais em texto simples, com número e status. |
-| `.todo/config/config.bin` | Valores de configuração. |
-| `.todo/config/count.bin` | Contagem armazenada das tarefas. |
-| `.todo/logs/` | Logs de operações, organizados em arquivos diários. |
-| `.todo/subtasks.db` | Banco SQLite das subtarefas, criado quando necessário. |
+| `Todofile` | Main task list, stored as numbered plain text. |
+| `.todo/config/config.bin` | Configuration values. |
+| `.todo/config/count.bin` | Cached number of main tasks. |
+| `.todo/logs/` | Daily operation logs. |
+| `.todo/subtasks.db` | SQLite subtask database. |
+| `.todo/subtasks.json` | JSON subtask database. |
 
-No Windows, a pasta `.todo` é marcada como oculta durante a inicialização.
+The `.todo` directory is marked hidden on Windows when initialized.
 
-## Limitações conhecidas
+## Known limitations
 
-- As opções `readable` e `checkable` são gravadas na configuração, mas atualmente não alteram a serialização das tarefas principais: o `Todofile` continua sendo texto simples e as tarefas são exibidas com caixa de status.
-- Prioridade e data de vencimento são campos de subtarefas; não são atributos das tarefas principais.
-- O projeto ainda não contém um arquivo `LICENSE`. Consulte a seção [Licença](#licença) antes de reutilizar ou distribuir o código.
+- The code currently depends on Windows APIs, so Linux and macOS are not
+  supported by the current implementation.
+- The JSON backend requires Python 3 and the `py -3` launcher.
+- `readable` is a saved setting but do not alter the main
+  `Todofile` format.
+- Priorities and due dates belong to subtasks; main tasks do not have these
+  fields.
+- The repository does not currently include a `LICENSE` file. No reuse or
+  redistribution terms are declared here.
 
-## Contribuição
+## Contributing
 
-Contribuições são bem-vindas. Abra uma issue para relatar um problema ou sugerir uma melhoria; para enviar código, abra um pull request com uma descrição clara da alteração. Antes de enviar, compile o projeto com:
+Issues and pull requests are welcome. Please describe the behavior being
+changed and verify the build with `make run`.
 
-```bash
-make run
-```
+## License
 
-## Licença
+No project license file is currently present. The project's licensing terms
+have not been declared.
 
-Não há um arquivo de licença no repositório no momento. Portanto, o projeto ainda não declara formalmente os termos para uso, modificação ou redistribuição.
+## Acknowledgments
 
-## Créditos
-
-A organização das seções foi inspirada no [Best-README-Template](https://github.com/othneildrew/Best-README-Template), disponibilizado sob a [Unlicense](https://github.com/othneildrew/Best-README-Template/blob/master/LICENSE.txt). O conteúdo foi reescrito e adaptado às funcionalidades deste projeto.
+The documentation structure was informed by
+[Best-README-Template](https://github.com/othneildrew/Best-README-Template),
+which is released under the [Unlicense](https://github.com/othneildrew/Best-README-Template/blob/master/LICENSE.txt).
+This README is original documentation adapted to this project's commands,
+storage formats, and current implementation.

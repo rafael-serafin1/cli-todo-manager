@@ -5,7 +5,7 @@ EXTRA_FLAGS=-Wall
 
 INCLUDE=sqlite3.o
 
-ifeq ($(OS),Windows_NT)
+ifeq ($(OS), Windows_NT)
     PLATFORM_FLAGS=-municode
 else
     PLATFORM_FLAGS=

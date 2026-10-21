@@ -28,7 +28,7 @@
     #define TODO_VERSION "development"
 #endif
 
-#define BASIC_CONFIG "checkable=true\nreadable=true\nnosql=false\n"
+#define BASIC_CONFIG "checkable=true\nreadable=true\neditable=true\nnosql=false\n"
 
 namespace fs = std::filesystem;
 
@@ -59,6 +59,7 @@ namespace TODO {
         static std::vector<TodoTask> read_tasks() {
             WFile file(TODO_FILE);
             const auto lines = file.read_lines();
+
             std::vector<TodoTask> tasks;
             tasks.reserve(lines.size());
 
@@ -529,6 +530,7 @@ namespace TODO {
         bool run() override {
             arguments.push_back(std::string("checkable"));
             arguments.push_back(std::string("readable"));
+            arguments.push_back(std::string("editable"));
             arguments.push_back(std::string("nosql"));
 
 
@@ -538,7 +540,7 @@ namespace TODO {
                 return true;
             }
             if (flags.size() != 2)
-                throw todo_file_exception("Usage: todo config <checkable|readable|nosql> <true|false>");
+                throw todo_file_exception("Usage: todo config <checkable|readable|editable|nosql> <true|false>");
 
             if (!in_list(flags, arguments))
                 throw todo_file_exception("Config option must be valid.");
@@ -684,6 +686,15 @@ namespace TODO {
                 dialog::report(report_types::error, "too many arguments!");
                 return false;
             }
+
+            TODOConfig c;
+            const auto& config = c.read_config();
+
+            if (!config.editable) {
+                dialog::report(report_types::error, "Not allowed to edit tasks!");
+                return config.editable;
+            }
+
 
             WFile file = WFile(TODO_FILE);
 
@@ -1047,6 +1058,13 @@ namespace TODO {
          * <NEW_DESC> --> new description ('--' if don't want to change that)
          */
         bool edit() {
+            const auto& c = config.read_config();
+
+            if (!c.editable) {
+                dialog::report(report_types::error, "Not allowed to edit subtasks!");
+                return c.editable;
+            }
+
             const unsigned int parsed_subtask_id = parse_task_number(flags[1]);
             if (parsed_subtask_id > static_cast<unsigned int>(std::numeric_limits<int>::max()))
                 throw todo_file_exception("Subtask ID is too large.");
