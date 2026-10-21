@@ -65,8 +65,127 @@ Execute `todo init` no diretório em que deseja manter suas tarefas. O comando c
 
 ```bash
 todo init
-todo add "Preparar a próxima entrega"
-todo add "Revisar a documentação"
+```
+
+This creates the required repository and configuration files.
+
+After that you can configure how Todo behaves.
+
+---
+
+# Commands
+
+## Show help
+
+```bash
+todo help
+```
+
+Displays every available command and flag.
+
+---
+
+## Check repository integrity
+
+```bash
+todo check
+```
+
+Verifies that the task counter matches the tasks in `Todofile` and that task
+entries are valid. This command does not modify repository files.
+
+---
+
+## Restore the Todofile repository
+
+```bash
+todo restore
+```
+
+Repairs the repository directories and configuration files, recalculates the
+task count from `Todofile`, resets configuration to its defaults, and creates
+or repairs the configured subtask database. Existing task and subtask data is
+preserved.
+
+Restore an individual part with `--repo` (`-r`), `--count` (`-c`), `--sub`
+(`-s`), or `--config` (`-cf`).
+
+---
+
+## Configure Todo
+
+```bash
+todo config [OPTIONS]
+```
+
+Short flags
+
+```bash
+todo config -r -v -c
+```
+
+Long flags
+
+```bash
+todo config --readable --visible --checkable
+```
+
+### Available options
+
+| Option | Description |
+|---------|-------------|
+| `--readable` | Stores tasks as plain text instead of binary |
+| `--visible` | Stores the Todofile in the project root instead of `.todo/` |
+| `--checkable` | Enables checkbox support for tasks |
+
+Default configuration
+
+```
+Readable  : true
+Visible   : true
+Checkable : true
+```
+
+---
+
+## Add a task
+
+```bash
+todo add "Finish README"
+```
+
+Example
+
+```bash
+todo add "Study operating systems"
+```
+
+---
+
+## Remove a task
+
+```bash
+todo remove "3"
+```
+
+Removes the task with the specified index.
+
+---
+
+## Edit a subtask
+
+```bash
+todo subtask edit <SUBTASK_ID>
+```
+
+The command prompts for the subtask description, parent task ID, priority,
+status, and due date. Enter `--` at any prompt to keep the current value.
+
+---
+
+## List tasks
+
+```bash
 todo list
 todo switch 1
 todo count
