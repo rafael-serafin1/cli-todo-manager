@@ -31,6 +31,15 @@ todo list --all         # list every task (-a is an alias)
 - The task total is stored in `.todo/config/count.bin` and updated by `add` and
   `remove`. `list`, `switch`, and `count` use this total.
 
+- To restore the repository:
+```bash
+todo restore             # repair the repository, count, config, and subtask database
+todo restore --count     # recalculate count.bin from Todofile
+todo restore --repo      # recreate missing repository directories and files
+todo restore --sub       # recreate or repair the selected subtask database
+todo restore --config    # reset configuration to defaults
+```
+
 - To check or uncheck a task:
 ```bash
 todo switch "<INDEX>"    # aways inside " "
@@ -41,7 +50,7 @@ todo switch "<INDEX>"
 
 **'config' command arguments =**
 ```bash
-todo config <readable|checkable> <value>
+todo config <readable|checkable|nosql> <value>
 ```
 
 ### Resume
@@ -58,6 +67,13 @@ todo config <readable|checkable> <value>
     false: Tasks are recorded normalized
 
     true: Tasks are recorded with a checkbox for ```todo check``` work
+```
+
+`nosql` =>
+```
+    false: Subtasks are recorded in SQLite
+
+    true:  Subtasks are recorded in JSON file
 ```
 
 ### Default values

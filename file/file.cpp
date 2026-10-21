@@ -1,5 +1,8 @@
 #include <string.h>
 #include <utility>
+#include <iostream>
+#include <format>
+#include <filesystem>
 
 #include "file.hpp"
 #include "../index.hpp"
@@ -177,5 +180,10 @@ namespace TODO {
             throw TODO::todo_file_exception("File already exists!");
 
         fclose(f);
+    }
+
+    void WFile::recycle(const char* _Path) {
+        if (!std::filesystem::remove(_Path)) 
+            throw todo_file_exception(std::format("Error while deleting file {}", _Path));
     }
 };

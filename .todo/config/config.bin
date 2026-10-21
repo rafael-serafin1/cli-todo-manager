@@ -1,2 +1,3 @@
 checkable=true
 readable=true
+nosql=false
