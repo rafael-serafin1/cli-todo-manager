@@ -1,88 +1,67 @@
-<div align="center">
+# Todo CLI Manager
 
-# ✅ Todo CLI Manager
+Gerencie tarefas e subtarefas diretamente pelo terminal com um executável leve, escrito em C++20. Os dados das tarefas principais ficam em um `Todofile` no diretório de trabalho; subtarefas, configurações e logs são mantidos localmente em `.todo/`.
 
-*A fast, lightweight and configurable task manager for the terminal, written entirely in C++.*
+[![C++](https://img.shields.io/badge/C%2B%2B-20-00599C?logo=cplusplus&logoColor=white)](https://isocpp.org/)
+[![Build](https://img.shields.io/badge/build-Makefile-427819)](#instalação)
+[![Plataformas](https://img.shields.io/badge/plataformas-Windows%20%7C%20Linux%20%7C%20macOS-2ea44f)](#requisitos)
 
-![Language](https://img.shields.io/badge/language-C++-blue.svg)
-![Platform](https://img.shields.io/badge/platform-Linux%20%7C%20Windows-green.svg)
-![License](https://img.shields.io/badge/license-MIT-orange.svg)
+## Índice
 
-</div>
+- [Recursos](#recursos)
+- [Requisitos](#requisitos)
+- [Instalação](#instalação)
+- [Primeiros passos](#primeiros-passos)
+- [Comandos](#comandos)
+- [Subtarefas](#subtarefas)
+- [Arquivos e persistência](#arquivos-e-persistência)
+- [Limitações conhecidas](#limitações-conhecidas)
+- [Contribuição](#contribuição)
+- [Licença](#licença)
+- [Créditos](#créditos)
 
----
+## Recursos
 
-# Overview
+- Criar, listar, editar, concluir, reabrir e remover tarefas.
+- Filtrar tarefas concluídas ou pendentes e contar tarefas e subtarefas.
+- Organizar subtarefas com prioridade, status e data de vencimento.
+- Conferir a integridade do `Todofile` e restaurar partes do repositório local.
+- Consultar logs diários das operações.
+- Manter os dados localmente, sem depender de serviços externos.
 
-Todo CLI Manager is a command-line task manager written from scratch in C++.
+## Requisitos
 
-Instead of opening graphical applications or browser tabs, you can manage your tasks directly from the terminal through a single executable:
+- Compilador GCC/G++ com suporte a C++20.
+- `make`.
+- No Windows, uma distribuição MinGW-w64 compatível com `g++` e `-municode`.
 
-```bash
-todo
-```
+O SQLite usado para persistir subtarefas está incluído no repositório (`include/sqlite3.c` e `include/sqlite3.h`); não é necessário instalar a biblioteca separadamente.
 
-The project focuses on:
+## Instalação
 
-- ⚡ Performance
-- 🪶 Lightweight storage
-- ⚙️ Configurability
-- 📁 Per-project task management
-- 💻 Native command-line workflow
-
-Each project can maintain its own task repository, making it ideal for software development, study, personal organization and automation.
-
----
-
-# Features
-
-- Add tasks
-- Remove tasks
-- List tasks
-- Check and uncheck tasks
-- Binary or plain-text storage
-- Hidden repository support
-- Project-local task management
-- Configurable behavior
-- Reset tasks modifiers
-
----
-
-# Installation
-
-Clone the repository:
+Clone o repositório e compile a partir da pasta do projeto:
 
 ```bash
-git clone https://github.com/your-user/todo-cli.git
+git clone https://github.com/rafael-serafin1/cli-todo-manager.git
+cd cli-todo-manager
+make run
 ```
 
-Compile:
+O alvo `make run` compila o SQLite incluído e gera o executável em `bin/todo` (ou `bin/todo.exe` no Windows). Para consultar os comandos usando o executável recém-compilado:
 
 ```bash
-make all
+# Linux/macOS
+./bin/todo help
+
+# Windows PowerShell
+.\bin\todo.exe help
 ```
 
-or using your preferred build system.
+Para executar `todo` sem informar o caminho completo, adicione a pasta `bin` ao `PATH` ou copie o executável para um diretório que já esteja nele.
 
-After compiling, place the executable somewhere inside your PATH.
+## Primeiros passos
 
-Example:
-
-Linux
-
-```bash
-sudo mv todo /usr/local/bin/
-```
-
-Windows
-
-Add the executable directory to the `PATH` environment variable.
-
----
-
-# Getting Started
-
-Initialize a Todo repository inside your project:
+Execute `todo init` no diretório em que deseja manter suas tarefas. O comando cria o repositório local e o `Todofile`:
 
 ```bash
 todo init
@@ -208,204 +187,138 @@ status, and due date. Enter `--` at any prompt to keep the current value.
 
 ```bash
 todo list
+todo switch 1
+todo count
 ```
 
-Lists the first 20 tasks.
+O `list` mostra até 20 tarefas por padrão; use `todo list --all` para exibir todas. `switch` alterna entre pendente e concluída. Execute `todo help` a qualquer momento para listar os comandos reconhecidos.
 
-### List flags
+> **Dica:** coloque descrições com espaços entre aspas. Os comandos devem ser executados no diretório que contém o `Todofile` do projeto.
 
-```bash
-todo list -a
-```
+## Comandos
 
-or
+| Comando | Descrição |
+| --- | --- |
+| `todo help` | Mostra os comandos disponíveis. |
+| `todo version` | Exibe a versão do executável. |
+| `todo init` | Inicializa o repositório local de tarefas no diretório atual. |
+| `todo add "<descrição>" [--done]` | Adiciona uma tarefa; `--done` (ou `-d`) cria a tarefa como concluída. |
+| `todo list [opções]` | Lista até 20 tarefas por padrão. |
+| `todo remove <número>` | Remove uma tarefa pelo número exibido na lista. |
+| `todo switch <número>` | Alterna o status da tarefa entre concluída e pendente. |
+| `todo edit <número> "<nova descrição>"` | Edita a descrição de uma tarefa. |
+| `todo count [opção]` | Conta tarefas ou consulta contagens filtradas. |
+| `todo config [opção valor]` | Sem argumentos, exibe a configuração; com argumentos, grava uma opção. |
+| `todo check` | Confere a validade das entradas do `Todofile` e a consistência da contagem. |
+| `todo restore [opções]` | Restaura a contagem, a estrutura do repositório e/ou o banco de subtarefas. |
+| `todo subtask <ação> ...` | Cria, lista, edita ou remove subtarefas. Consulte [Subtarefas](#subtarefas). |
+
+### Opções de `list`
+
+| Opção | Alias | Efeito |
+| --- | --- | --- |
+| `--all` | `-a` | Lista todas as tarefas. |
+| `--checked` | `-c` | Lista apenas as concluídas. |
+| `--unchecked` | `-un` | Lista apenas as pendentes. |
+| `--logs` | `-l` | Exibe os arquivos de log disponíveis. |
+
+Exemplos:
 
 ```bash
 todo list --all
-```
-
-Lists every task.
-
----
-
-```bash
-todo list -c
-```
-
-or
-
-```bash
 todo list --checked
-```
-
-Shows only completed tasks.
-
----
-
-```bash
-todo list -un
-```
-
-or
-
-```bash
 todo list --unchecked
+todo list --logs
 ```
 
-Shows only pending tasks.
+### Opções de `count`
 
----
-
-## Check a task
+| Opção | Alias | Efeito |
+| --- | --- | --- |
+| `--checked` | `-c` | Conta tarefas concluídas. |
+| `--unchecked` | `-un` | Conta tarefas pendentes. |
+| `--logs` | `-l` | Conta arquivos de log. |
+| `--subtasks` | `-st` | Conta subtarefas. |
 
 ```bash
-todo switch "2"
+todo count
+todo count --checked
+todo count --subtasks
 ```
 
-Marks task 2 as completed.
+### Configuração e restauração
 
-Example output
-
-```
-[X] Finish README
-```
-
----
-
-## Uncheck a task
+`todo config` sem argumentos mostra os valores atuais. Para gravar uma opção, use:
 
 ```bash
-todo switch "2"
+todo config readable true
+todo config checkable false
 ```
 
-Marks the task as pending again.
+As opções aceitam `true`/`false` e também `on`/`off` ou `1`/`0`.
 
-```
-[ ] Finish README
-```
-
----
-
-# Storage Modes
-
-Todo supports two storage formats.
-
-## Binary Mode
-
-```
-Fast
-Compact
-Not human-readable
-```
-
-Recommended for everyday usage.
-
----
-
-## Readable Mode
-
-```
-Plain text
-Easy to inspect manually
-Ideal for debugging
-```
-
----
-
-# Example Workflow
+`todo restore` sem opções tenta restaurar a contagem, a estrutura do repositório e o banco de subtarefas. Para selecionar partes específicas, use `--count` (`-c`), `--repo` (`-r`) e `--sub` (`-s`):
 
 ```bash
-todo init
-
-todo config --checkable
-
-todo add "Implement parser"
-
-todo add "Fix memory leak"
-
-todo list
+todo restore --count
+todo restore --repo
+todo restore --sub
 ```
 
-Output
+## Subtarefas
 
-```todo
-1. [ ] Implement parser
-2. [ ] Fix memory leak
-```
-
-Complete a task
+Subtarefas pertencem a uma tarefa principal e têm identificador próprio, prioridade, status e data de vencimento. Ao criar uma subtarefa, o programa solicita interativamente a data, a prioridade e o status.
 
 ```bash
-todo switch "1"
+todo subtask add <número-da-tarefa> "<descrição>"
 ```
 
-```todo
-1. [X] Implement parser
-2. [ ] Fix memory leak
-```
+Prioridades aceitas: `none`, `low`, `medium`, `high` e `urgent`. Status aceitos: `pending`, `in_progress`, `completed`, `on_hold` e `cancelled`. Use `--done` (`-d`) para criar a subtarefa com status concluído.
 
-Add a task that was already completed
 ```bash
-todo add "Document code" --done
+todo subtask list
+todo subtask list --all <número-da-tarefa>
+todo subtask list --id <id-da-subtarefa>
+todo subtask list --priority high
+todo subtask list --status pending
+todo subtask edit <id-da-subtarefa> "<nova descrição>"
+todo subtask remove <id-da-subtarefa>
 ```
 
-```todo
-1. [X] Implement parser
-2. [ ] Fix memory leak
-3. [X] Document code
+Ao editar, o programa solicita os demais campos. Informe `--` em uma solicitação para manter o valor existente.
+
+## Arquivos e persistência
+
+Os dados são locais ao diretório em que `todo init` foi executado:
+
+| Caminho | Conteúdo |
+| --- | --- |
+| `Todofile` | Tarefas principais em texto simples, com número e status. |
+| `.todo/config/config.bin` | Valores de configuração. |
+| `.todo/config/count.bin` | Contagem armazenada das tarefas. |
+| `.todo/logs/` | Logs de operações, organizados em arquivos diários. |
+| `.todo/subtasks.db` | Banco SQLite das subtarefas, criado quando necessário. |
+
+No Windows, a pasta `.todo` é marcada como oculta durante a inicialização.
+
+## Limitações conhecidas
+
+- As opções `readable` e `checkable` são gravadas na configuração, mas atualmente não alteram a serialização das tarefas principais: o `Todofile` continua sendo texto simples e as tarefas são exibidas com caixa de status.
+- Prioridade e data de vencimento são campos de subtarefas; não são atributos das tarefas principais.
+- O projeto ainda não contém um arquivo `LICENSE`. Consulte a seção [Licença](#licença) antes de reutilizar ou distribuir o código.
+
+## Contribuição
+
+Contribuições são bem-vindas. Abra uma issue para relatar um problema ou sugerir uma melhoria; para enviar código, abra um pull request com uma descrição clara da alteração. Antes de enviar, compile o projeto com:
+
+```bash
+make run
 ```
 
----
+## Licença
 
-# Why another Todo application?
+Não há um arquivo de licença no repositório no momento. Portanto, o projeto ainda não declara formalmente os termos para uso, modificação ou redistribuição.
 
-Most task managers are graphical, web-based or depend on external services.
+## Créditos
 
-Todo CLI Manager follows a different philosophy:
-
-- Native executable
-- No dependencies
-- No internet connection
-- Extremely small footprint
-- Easy integration into development workflows
-
----
-
-# Roadmap
-
-- [X] Task editing
-- [X] Due dates
-- [X] Subtasks
-- [ ] Task priorities
-- [ ] Categories
-- [ ] Colored output
-- [ ] Search
-- [ ] Sorting
-- [ ] Export/Import
-- [ ] Plugin support
-
----
-
-# Contributing
-
-Contributions are welcome.
-
-If you find a bug or have an idea for a feature:
-
-- Open an issue
-- Submit a pull request
-- Suggest improvements
-
----
-
-# License
-
-This project is distributed under the MIT License.
-
----
-
-<div align="center">
-
-**Built with C++ ❤️**
-
-</div>
+A organização das seções foi inspirada no [Best-README-Template](https://github.com/othneildrew/Best-README-Template), disponibilizado sob a [Unlicense](https://github.com/othneildrew/Best-README-Template/blob/master/LICENSE.txt). O conteúdo foi reescrito e adaptado às funcionalidades deste projeto.
