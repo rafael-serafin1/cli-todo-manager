@@ -11,6 +11,7 @@ namespace TODO {
     struct Todofile_Config {
         bool checkable;
         bool readable;
+        bool nosql;
     };
 
     class TODOConfig {

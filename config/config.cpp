@@ -65,9 +65,8 @@ namespace TODO {
     }
 
     TODO::Todofile_Config TODO::TODOConfig::read_config() {
-        if (configs == nullptr) {
+        if (configs == nullptr)
             configs = new Todofile_Config{false, false};
-        }
 
         file_writer = new WFile(this->config_path);
 
@@ -75,8 +74,9 @@ namespace TODO {
         auto config = Todofile_Config{false, false};
 
         if (!content.empty()) {
-            config.checkable = (content.find("checkable=true") != std::string::npos);
-            config.readable = (content.find("readable=true") != std::string::npos);
+            config.checkable =      (content.find("checkable=true")  != std::string::npos);
+            config.readable  =      (content.find("readable=true")   != std::string::npos);
+            config.nosql     =      (content.find("nosql=true")      != std::string::npos);
         }
 
         delete file_writer;

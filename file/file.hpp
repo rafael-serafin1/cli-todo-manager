@@ -62,5 +62,6 @@ namespace TODO {
 
         void create();
         void create(const char* _Path);
+        void recycle(const char* _Path);
     };
 }

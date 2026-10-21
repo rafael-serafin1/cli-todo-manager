@@ -7,6 +7,8 @@
 #include "../../log/logs.hpp"
 
 #include "subtasks/subtasks.hpp"
+#include "subtasks/subtask_sql.hpp"
+#include "subtasks/subtask_nosql.hpp"
 
 #include <charconv>
 #include <filesystem>
@@ -15,10 +17,18 @@
 #include <string>
 #include <system_error>
 #include <vector>
+#include <format> 
+
+
+#include <thread>
+#include <future>
+#include <chrono>
 
 #ifndef TODO_VERSION
     #define TODO_VERSION "development"
 #endif
+
+#define BASIC_CONFIG "checkable=true\nreadable=true\nnosql=false\n"
 
 namespace fs = std::filesystem;
 
@@ -155,7 +165,7 @@ namespace TODO {
             std::vector<std::string> resultado;
 
             for (const auto& i: flags) {
-                #define X(cmd, flag, alias)     \
+                #define X(cmd, flag, alias, desc)     \
                     if (cmd == Cmd && (i == flag or i == alias)) { resultado.push_back(i); continue; }
                     TODO_FLAGS
                 #undef X
@@ -170,10 +180,8 @@ namespace TODO {
     };
 
     class init_command: public basic_command {
-    public:
-        using basic_command::basic_command;
-
-        bool run() override {
+    private:
+        bool normal_init() {
             namespace fs = std::filesystem;
             const fs::path root(TODO_REPO);
             
@@ -202,12 +210,63 @@ namespace TODO {
 
             WFile config_file(CONFIG_FILE);
             config_file.create(CONFIG_FILE);
-            config_file.write("checkable=true\nreadable=true\n");
+
+            bool nosql = false;
+            if (flags.size() > 0) 
+                if (has_flag(flags, "--nosql", "-ns"))
+                    nosql = true;
+
+            const std::string CONFIG = std::string(std::format("checkable=true\nreadable=true\nnosql={}\n", ((nosql) ? "true" : "false")));
+
+            config_file.write(CONFIG.c_str());
 
             this->logger.generate(this->logger.log_message("Initialized Todofile repository."));
 
             dialog::report(report_types::success, "Todofile repository initialized.");
+
             return true;
+        }
+
+        void subtask_init() {
+            TODOConfig config;
+            const auto& c = config.read_config();
+
+            if (c.nosql) {
+                if (fs::exists(TODO_SUBTASKS_NOSQL))
+                    throw todo_file_exception("noSQL-based database already exists.");
+
+                auto handler = subtask_nosql_handler();
+                handler.create_database();
+                handler.create_table();
+            } else {
+                if (fs::exists(TODO_SUBTASKS_SQL)) 
+                    throw todo_file_exception("SQL-based database already exists.");
+
+                auto handler = subtask_sql_handler();
+                handler.create_database();
+                handler.create_table();
+            }
+        }
+
+    public:
+        using basic_command::basic_command;
+
+        bool run() override {
+            namespace fs = std::filesystem;
+
+            if (has_flag(flags, "--subtasks", "-st")) {
+                if (!fs::exists(TODO_REPO)) {
+                    dialog::report(report_types::warn, "No Todofile repo was found.");
+                    return false;
+                }
+
+                this->subtask_init();
+                return true;
+            } 
+            else if (flags.size() > 0)
+                throw todo_file_exception("Too much arguments.");
+            
+            return this->normal_init();
         }
     };
 
@@ -360,14 +419,72 @@ namespace TODO {
     };
 
     class help_command: public basic_command {
-    public:
-        using basic_command::basic_command;
-
-        bool run() override {
+    private:
+        void show_all_commands() {
             #define X(command, description, implementation) \
                 std::cout << "  " << command << " - " << description << '\n';
             TODO_COMMANDS
             #undef X
+        }
+
+        void specify_command(const std::string& command) {
+            bool found = false;
+
+            #define X(command_name, description, implementation) \
+                if (command == command_name) { \
+                    std::cout << command_name << " - " << description << '\n'; \
+                    found = true; \
+                }
+            TODO_COMMANDS
+            #undef X
+
+            if (!found)
+                throw todo_file_exception("Unknown command: '" + command + "'.");
+
+            if (command == "subtask") {
+                std::cout << "\nSubcommands:\n";
+                #define X(command_name, subcommand, description) \
+                    if (command == command_name) \
+                        std::cout << "  " << subcommand << " - " << description << '\n';
+                TODO_SUBCOMMANDS
+                #undef X
+
+                std::printf("\n   Flags:\n");
+                #define X(command_name, subcommand, flag, alias, description) \
+                    if (command == command_name) \
+                        std::cout << "    " << subcommand << " " << flag << " (" << alias << ") - " << description << ".\n";
+                TODO_SUBCOMMANDS_FLAGS
+                #undef X
+            }
+
+            bool has_flags = false;
+            #define X(command_name, flag, alias, desc) \
+                if (command == command_name) { \
+                    if (!has_flags) \
+                        std::cout << "Flags:\n"; \
+                    std::cout << "  " << flag << " (" << alias << ") --> " << desc << std::endl; \
+                    has_flags = true; \
+                }
+            TODO_FLAGS
+            #undef X
+        }
+
+    public:
+        using basic_command::basic_command;
+
+        bool run() override {
+            if (flags.size() <= 0)
+                show_all_commands();
+            else if (has_flag(flags, "--specify", "-sp")) {
+                if (flags.size() <= 1)
+                    throw todo_file_exception("Expected an command after '--specify' flag.");
+
+                specify_command(flags[1]);
+            } 
+            else
+                dialog::report(report_types::error, "Unexpected flag: %s", flags[0].c_str());
+                
+            
             return true;
         }
     };
@@ -395,20 +512,36 @@ namespace TODO {
             throw todo_file_exception("Expected true/false (or on/off) for config value.");
         }
 
+        bool in_list(const std::vector<std::string>& list1, const std::vector<std::string>& list2) {
+            for (std::size_t i = 0; i < list1.size(); ++i)
+                for (std::size_t j = 0; j < list2.size(); ++j)
+                    if (list1[i] == list2[j])
+                        return true;
+
+            return false;
+        }
+
+        std::vector<std::string> arguments;
+
     public:
         using basic_command::basic_command;
 
         bool run() override {
+            arguments.push_back(std::string("checkable"));
+            arguments.push_back(std::string("readable"));
+            arguments.push_back(std::string("nosql"));
+
+
             if (flags.empty()) {
                 WFile file(CONFIG_FILE);
                 std::cout << file.read();
                 return true;
             }
             if (flags.size() != 2)
-                throw todo_file_exception("Usage: todo config <checkable|readable> <true|false>");
+                throw todo_file_exception("Usage: todo config <checkable|readable|nosql> <true|false>");
 
-            if (flags[0] != "checkable" && flags[0] != "readable")
-                throw todo_file_exception("Config option must be 'checkable' or 'readable'.");
+            if (!in_list(flags, arguments))
+                throw todo_file_exception("Config option must be valid.");
 
             WFile file(CONFIG_FILE);
             std::string content = file.read();
@@ -440,7 +573,7 @@ namespace TODO {
             logger.generate(message);
 
             file.write(content.c_str());
-            dialog::report(report_types::success, "%s set to %s.", flags[0].c_str(), flags[1].c_str());
+            dialog::report(report_types::success, "'%s' set to %s.", flags[0].c_str(), flags[1].c_str());
             return true;
         }
     };
@@ -511,8 +644,12 @@ namespace TODO {
                             ++count;
                 } 
                 else if (has_flag(flags, "--subtasks", "-st")) {
-                    subtask_handler handler;
-                    const auto& st = handler.read_subtasks();
+                    std::unique_ptr<subtask_handler> handler;
+                    if (config.read_config().nosql)
+                        handler = std::make_unique<subtask_nosql_handler>();
+                    else
+                        handler = std::make_unique<subtask_sql_handler>();
+                    const auto st = handler->read_subtasks();
                     count = st.size();
                 }
                 else {
@@ -615,27 +752,35 @@ namespace TODO {
 
     class restore_command: public basic_command {
     protected:
+        static void ensure_directory(const fs::path& path) {
+            if (fs::exists(path)) {
+                if (!fs::is_directory(path))
+                    throw todo_file_exception("Repository path is not a directory: " + path.string());
+                return;
+            }
+
+            fs::create_directories(path);
+        }
+
+        static void ensure_file(const char* path, const char* initial_content) {
+            if (fs::exists(path))
+                return;
+
+            WFile file(path);
+            file.create(path);
+            file.write(initial_content);
+        }
+
         void restore_count(bool affirmative) {
             if (!affirmative)
                 return;
 
+            ensure_directory(CONFIG_DIRECTORY);
+            ensure_file(COUNTER_FILE, "0");
+
+            const auto tasks = read_tasks();
             TODOConfig configs;
-
-            auto lines = this->read_tasks();
-            int count  = configs.read_count();
-
-            if (count == lines.size())
-                return;
-
-            if (count < lines.size()) {
-                int diff = lines.size() - count;
-                configs.increment_count(diff);
-            } 
-            else {
-                int diff = count - lines.size();
-                configs.decrement_count(diff);
-            }
-
+            configs.write_count(tasks.size());
             dialog::report(report_types::success, "Task count restored.");
         }    
 
@@ -643,42 +788,24 @@ namespace TODO {
             if (!affirmative)
                 return;
 
-            if (!fs::exists(TODO_REPO) && !fs::exists(TODO_FILE))
+            if (!fs::is_regular_file(TODO_FILE))
                 throw todo_file_exception("Repository wasn't initialized!");
 
-            if (!fs::exists(TODO_REPO)) {
-                if (!fs::create_directories(TODO_REPO) 
-                        || !fs::create_directories(CONFIG_DIRECTORY) 
-                        || !fs::create_directories(LOG_DIRECTORY)
-                        || !fs::create_directories(PRIORITY_DIRECTORY))
-                    throw todo_file_exception("Couldn't create a new repository.");
+            ensure_directory(TODO_REPO);
+            ensure_directory(CONFIG_DIRECTORY);
+            ensure_directory(LOG_DIRECTORY);
+            ensure_directory(PRIORITY_DIRECTORY);
+            ensure_file(CONFIG_FILE, BASIC_CONFIG);
+            ensure_file(COUNTER_FILE, "0");
+
+            const auto tasks = read_tasks();
+            TODOConfig config;
+            config.write_count(tasks.size());
 
             #ifdef _WIN32
-                if (!SetFileAttributesA(TODO_REPO, FILE_ATTRIBUTE_HIDDEN))  
-                    throw todo_file_exception("Failed to hide directory.");
+            if (!SetFileAttributesA(TODO_REPO, FILE_ATTRIBUTE_HIDDEN))
+                dialog::report(report_types::warn, "Failed attempt to hide directory.");
             #endif
-                    
-                TODOConfig config;
-                WFile f(CONFIG_FILE);
-
-                f.create(CONFIG_FILE);
-                f.create(COUNTER_FILE);
-
-                f.write("checkable=true\nreadable=true\n");
-
-                auto tasks = this->read_tasks();
-                config.write_count(tasks.size());
-            } 
-            else {
-            #ifdef _WIN32
-                if (!SetFileAttributesA(TODO_REPO, FILE_ATTRIBUTE_HIDDEN))  
-                    dialog::report(report_types::warn, "Failed attempt to hide directory.");
-            #endif
-
-                fs::create_directories(CONFIG_DIRECTORY);
-                fs::create_directories(LOG_DIRECTORY);
-                fs::create_directories(PRIORITY_DIRECTORY);
-            }
 
             dialog::report(report_types::success, "Todofile repository restored.");
         }
@@ -687,46 +814,108 @@ namespace TODO {
             if (!affirmative)
                 return;
 
-            if (!fs::exists(".todo/subtasks.db") && affirmative) {
-                subtask_handler h; 
+            ensure_directory(TODO_REPO);
+            ensure_directory(CONFIG_DIRECTORY);
+            ensure_file(CONFIG_FILE, BASIC_CONFIG);
+
+            TODOConfig cfig;
+            const bool use_nosql = cfig.read_config().nosql;
+
+            if (!use_nosql) {
+                subtask_sql_handler h;
+                const bool sql_exists = fs::exists(TODO_SUBTASKS_SQL);
+                const bool nosql_exists = fs::exists(TODO_SUBTASKS_NOSQL);
+
                 h.create_database();
                 h.create_table();
+                if (!sql_exists && nosql_exists) {
+                    subtask_nosql_handler nosql;
+                    const auto& subtasks = nosql.read_subtasks();
+
+                    for (const auto& subtask: subtasks) 
+                        h.insert_subtask(subtask);
+
+                    if (!fs::remove(TODO_SUBTASKS_NOSQL))
+                        throw todo_file_exception("Could not remove the migrated subtask database.");
+                }
+            } else {
+                subtask_nosql_handler h;
+                const bool nosql_exists = fs::exists(TODO_SUBTASKS_NOSQL);
+                const bool sql_exists = fs::exists(TODO_SUBTASKS_SQL);
+                std::vector<subtask> subtasks;
+
+                if (!nosql_exists && sql_exists) {
+                    subtask_sql_handler sql;
+                    subtasks = sql.read_subtasks();
+                }
+
+                h.create_database();
+                for (const auto& subtask: subtasks)
+                    h.insert_subtask(subtask);
+
+                if (!nosql_exists && sql_exists && !fs::remove(TODO_SUBTASKS_SQL))
+                    throw todo_file_exception("Could not remove the migrated subtask database.");
             }
 
             dialog::report(report_types::success, "Todofile subtasks database recreated.");
+        }
+
+        void restore_configs(bool affirmative) {
+            if (!affirmative)
+                return;
+
+            ensure_directory(TODO_REPO);
+            ensure_directory(CONFIG_DIRECTORY);
+            ensure_file(CONFIG_FILE, BASIC_CONFIG);
+
+            WFile file = WFile(CONFIG_FILE);
+            file.write(BASIC_CONFIG);
         }
 
     public:
         using basic_command::basic_command;
 
         bool run() {
-            bool rcount = false, 
-                 rrepo  = false,
-                 rsub   = false;
+            bool rcount     = false, 
+                 rrepo      = false,
+                 rsub       = false,
+                 rconfig    = false;
 
             if (flags.empty()) {
-                rcount = true;
-                rrepo  = true;
-                rsub   = true;
+                rcount  = true;
+                rrepo   = true;
+                rsub    = true;
+                rconfig = true;
             } 
             else {
-                rcount = has_flag(flags, "--count",   "-c");
-                rrepo  = has_flag(flags, "--repo",    "-r");
-                rsub   = has_flag(flags, "--sub",     "-s");
+                rcount  = has_flag(flags, "--count",   "-c");
+                rrepo   = has_flag(flags, "--repo",    "-r");
+                rsub    = has_flag(flags, "--sub",     "-s");
+                rconfig = has_flag(flags, "--config", "-cf");
+
+                for (const auto& flag : flags) {
+                    if (flag != "--count" && flag != "-c" &&
+                        flag != "--repo" && flag != "-r" &&
+                        flag != "--sub" && flag != "-s" &&
+                        flag != "--config" && flag != "-cf") {
+                        throw todo_file_exception("Unexpected restore option: '" + flag + "'");
+                    }
+                }
             }
 
-            restore_count(rcount);
             restore_repo(rrepo);
+            restore_configs(rconfig);
+            restore_count(rcount);
             recreate_subtasks(rsub);
 
             std::string holder;
 
-            if (rcount and rrepo)
-                holder = std::string("Count and repository was successfully restored.");
-            else if (rcount) 
-                holder = std::string("Count was successfully restored.");
-            else
-                holder = std::string("Repository was successfully restored.");
+            holder = std::string("Repository was successfully restored with: ");
+            if (rcount)  holder += "count | ";
+            if (rrepo)   holder += "directories | ";
+            if (rsub)    holder += "subtask database | ";
+            if (rconfig) holder += "config file reseted | ";
+            holder += ";";
 
             const char* message = logger.log_message(holder);
             logger.generate(message);
@@ -740,7 +929,7 @@ namespace TODO {
         TODOConfig config;
         std::size_t count = 0;
 
-        subtask_handler handler;
+        std::unique_ptr<subtask_handler> handler;
 
         /**
          * Expected command line: 
@@ -764,7 +953,7 @@ namespace TODO {
             
             st = subtask_form(id, argument, (has_flag(flags, "--done", "-d")));
 
-            int result = handler.insert_subtask(st);
+            int result = handler->insert_subtask(st);
 
             return (result <= 0) ? false : true;
         }   
@@ -776,7 +965,7 @@ namespace TODO {
          */
         bool remove() {
             const unsigned int id = parse_task_number(flags[1]);
-            int result = handler.remove_subtask(id);
+            int result = handler->remove_subtask(id);
 
             return (result <= 0) ? false : true;
         }
@@ -787,6 +976,8 @@ namespace TODO {
          * <FLAGS> ->
          *  ? --all | -a   <TASK_ID>
          *  ? --id  | -i   <SUBTASK_ID>
+         *  ? --priority | -p <PRIORITY>
+         *  ? --status | -s <STATUS>
          */
         bool list() {
             if (has_flag(flags, "--all", "-a")) {
@@ -794,7 +985,7 @@ namespace TODO {
                     throw todo_file_exception("No Todofile task ID was provided.");
 
                 const unsigned int id  = parse_task_number(flags[2]);
-                const auto& subtasks   = handler.read_subtasks(id);
+                const auto& subtasks   = handler->read_subtasks(id);
 
                 for (const auto& i: subtasks) 
                     show_info(i);
@@ -804,7 +995,7 @@ namespace TODO {
                     throw todo_file_exception("No subtask ID was provided.");
 
                 const unsigned int id  = parse_task_number(flags[2]);
-                const auto& subtask    = handler.read_subtask(id);
+                const auto& subtask    = handler->read_subtask(id);
 
                 show_all_info(subtask);
             } 
@@ -813,7 +1004,7 @@ namespace TODO {
                     throw todo_file_exception("No priority value was provided.");
 
                 std::string priority = flags[2];
-                const auto& subtasks = handler.read_subtasks();
+                const auto& subtasks = handler->read_subtasks();
                 const auto& fetched  = fetch_priority(subtasks, subtask::to_priority(priority.c_str()));
 
                 if (fetched.size() <= 0)
@@ -827,7 +1018,7 @@ namespace TODO {
                     throw todo_file_exception("No status value was provided.");
 
                 std::string status   = flags[2];
-                const auto& subtasks = handler.read_subtasks();
+                const auto& subtasks = handler->read_subtasks();
                 const auto& fetched  = fetch_status(subtasks, subtask::to_status(status.c_str()));
 
                 if (fetched.size() <= 0)
@@ -837,7 +1028,7 @@ namespace TODO {
                     show_all_info(i);
             }
             else {
-                const auto& subtasks = handler.read_subtasks();
+                const auto& subtasks = handler->read_subtasks();
 
                 if (subtasks.size() <= 0)
                     dialog::report(report_types::warn, "No subtasks were cataloged.");
@@ -851,8 +1042,9 @@ namespace TODO {
 
         /**
          * Expected command line:
-         *      todo subtask edit <ID>
+         *      todo subtask edit <ID> <NEW_DESC>
          * <ID> --> subtask ID
+         * <NEW_DESC> --> new description ('--' if don't want to change that)
          */
         bool edit() {
             const unsigned int parsed_subtask_id = parse_task_number(flags[1]);
@@ -860,7 +1052,7 @@ namespace TODO {
                 throw todo_file_exception("Subtask ID is too large.");
 
             const int subtask_id = static_cast<int>(parsed_subtask_id);
-            subtask original = handler.read_subtask(subtask_id);
+            subtask original = handler->read_subtask(subtask_id);
             count = config.read_count();
             const auto tasks = read_tasks();
             validate_task_count(tasks, count);
@@ -908,7 +1100,7 @@ namespace TODO {
             original.due_date = dd;
             original.status = subtask::to_status(s.c_str());
 
-            subtask updated = handler.edit_subtask(subtask_id, original);
+            subtask updated = handler->edit_subtask(subtask_id, original);
 
             show_all_info(updated);
 
@@ -945,7 +1137,14 @@ namespace TODO {
          */
 
 
-        using basic_command::basic_command;
+        subtask_command(const std::vector<std::string>& arguments): basic_command(arguments) {
+            const auto& c = this->config.read_config();
+
+            if (c.nosql)
+                this->handler = std::make_unique<subtask_nosql_handler>();
+            else
+                this->handler = std::make_unique<subtask_sql_handler>();
+        }
 
         bool run() override {
 

@@ -3,7 +3,7 @@
 
 #define TODO_COMMANDS                                                                                   \
     X("init",    "Initializes a new repo", init_command)                                                \
-    X("list",    "List all todo tasks", list_command)                                                   \
+    X("list",    "List 20 first todo tasks", list_command)                                              \
     X("add",     "Adds a new task", add_command)                                                        \
     X("remove",  "Removes a task", remove_command)                                                      \
     X("switch",  "Checks/Unchecks a task", switch_command)                                              \
@@ -16,17 +16,31 @@
     X("restore", "Restore Todofile repository", restore_command)                                        \
     X("subtask", "Adds a subtask to an existing task", subtask_command)
 
-#define TODO_FLAGS                                               \
-    X("list",    "--logs",       "-l")                           \
-    X("list",    "--all",        "-a")                           \
-    X("list",    "--checked",    "-c")                           \
-    X("list",    "--unchecked",  "-un")                          \
-    X("add",     "--done",       "-d")                           \
-    X("count",   "--logs",       "-l")                           \
-    X("subtask", "--done",       "-d")                           \
-    X("restore", "--repo",       "-r")                           \
-    X("restore", "--count",      "-c")                           \
-    X("restore", "--sub",        "-s")                           
+#define TODO_SUBCOMMANDS                                                                                                                        \
+    X("subtask", "add <TASK_ID> \"<SUBTASK_DESC>\"",    "Adds a new subtask to the database")                                                   \
+    X("subtask", "remove <SUBTASK_ID>",                 "Removes a subtask from the database")                                                  \
+    X("subtask", "list",                                "Show all subtasks recorded")                                                           \
+    X("subtask", "edit <ID> \"<NEW_DESC>\"",            "Edits an existing task (Use \"--\" in <NEW_DESC> to avoid change its description)")
+
+#define TODO_SUBCOMMANDS_FLAGS                                                                                                          \
+    X("subtask", "add",  "--done",                      "-d",   "Declare an subtask as already done")                                   \
+    X("subtask", "list", "--all <TASK_ID>",             "-a",   "Show every single subtask related to that specific task")              \
+    X("subtask", "list", "--id  <SUBTASK_ID>",          "-i",   "Search for that specific subtask by its ID")                           \
+    X("subtask", "list", "--priority \"<PRIORITY>\"",   "-p",   "Fetch all subtasks by its priority")                                   \
+    X("subtask", "list", "--status \"<STATUS>\"",       "-s",   "Fetch all subtasks by its status")                                     \
+
+#define TODO_FLAGS                                                                              \
+    X("help",    "--specify",    "-sp",     "Specifies an command")                             \
+    X("list",    "--logs",       "-l",      "List all logs registed")                           \
+    X("list",    "--all",        "-a",      "List all tasks")                                   \
+    X("list",    "--checked",    "-c",      "List all checked todo tasks")                      \
+    X("list",    "--unchecked",  "-un",     "List all unchecked todo tasks")                    \
+    X("add",     "--done",       "-d",      "Mark task as already done")                        \
+    X("count",   "--logs",       "-l",      "Count all log files")                              \
+    X("restore", "--repo",       "-r",      "Restore repository only")                          \
+    X("restore", "--count",      "-c",      "Restore count file only")                          \
+    X("restore", "--sub",        "-s",      "Restore subtasks database")                       \
+    X("restore", "--config",     "-cf",     "Reset configuration to defaults")
 
 
 #ifdef _WIN32

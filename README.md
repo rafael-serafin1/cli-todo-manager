@@ -117,6 +117,22 @@ entries are valid. This command does not modify repository files.
 
 ---
 
+## Restore the Todofile repository
+
+```bash
+todo restore
+```
+
+Repairs the repository directories and configuration files, recalculates the
+task count from `Todofile`, resets configuration to its defaults, and creates
+or repairs the configured subtask database. Existing task and subtask data is
+preserved.
+
+Restore an individual part with `--repo` (`-r`), `--count` (`-c`), `--sub`
+(`-s`), or `--config` (`-cf`).
+
+---
+
 ## Configure Todo
 
 ```bash
