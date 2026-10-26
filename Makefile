@@ -1,4 +1,4 @@
-FILES=index.cpp parse/parse.cpp commands/commands.cpp config/config.cpp file/file.cpp
+FILES=index.cpp parse/parse.cpp commands/commands.cpp config/config.cpp link/link.cpp file/file.cpp
 
 IMPORTANT_FLAGS=-std=c++20 -O2 -finput-charset=UTF-8 -fexec-charset=UTF-8
 EXTRA_FLAGS=-Wall
