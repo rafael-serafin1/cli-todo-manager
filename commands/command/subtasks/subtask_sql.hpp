@@ -295,7 +295,7 @@ namespace TODO {
                 std::string holder = std::string("Subtask '");
                 holder += Subtask.subtask + "' was removed from database.";
 
-                const char* msg = l.log_message(holder);
+                const std::string msg = l.log_message(holder);
                 l.generate(msg);
             }
 

@@ -76,6 +76,7 @@ namespace TODO {
         if (!content.empty()) {
             config.checkable =      (content.find("checkable=true")  != std::string::npos);
             config.readable  =      (content.find("readable=true")   != std::string::npos);
+            config.editable  =      (content.find("editable=true")   != std::string::npos);
             config.nosql     =      (content.find("nosql=true")      != std::string::npos);
         }
 

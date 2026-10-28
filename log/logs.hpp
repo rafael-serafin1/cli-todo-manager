@@ -21,17 +21,16 @@ public:
 
     ~log_generator() { }
 
-    const char* log_message(const std::string& Additional) {
+    std::string log_message(const std::string& Additional) {
         date_time dt;
 
         std::string log = std::string(dt.now());
         log = log + " " + Additional;
 
-        const char* Log = log.c_str();
-        return Log;
+        return log;
     }
 
-    void generate(const char* _Message) {
+    void generate(const std::string& message) {
     #ifdef _WIN32
         std::string path = std::string(LOG_DIRECTORY);
         path += '\\';
@@ -56,7 +55,7 @@ public:
             TODO::dialog::report(report_types::warn, "File '%s' already exists.", path.c_str());
         }
 
-        f.append(_Message);
+        f.append(message.c_str());
     }
 };
 

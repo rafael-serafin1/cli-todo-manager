@@ -5,6 +5,9 @@
 #include "../../macros/macros.hpp"
 #include "../../utils/dialog.hpp"
 #include "../../log/logs.hpp"
+#include "../../link/link.hpp"
+
+#include "helper.hpp"
 
 #include "subtasks/subtasks.hpp"
 #include "subtasks/subtask_sql.hpp"
@@ -28,16 +31,14 @@
     #define TODO_VERSION "development"
 #endif
 
-#define BASIC_CONFIG "checkable=true\nreadable=true\nnosql=false\n"
+#define BASIC_CONFIG "checkable=true\nreadable=true\neditable=true\nnosql=false\n"
+
+#define CHECK_FLAGS_SIZE(expected)  \
+    if (flags.size() < expected) throw todo_file_exception("Too few arguments")
 
 namespace fs = std::filesystem;
 
 namespace TODO {
-    struct TodoTask {
-        bool checked;
-        std::string title;
-    };
-
     class basic_command {
     protected:
         const std::vector<std::string> flags;
@@ -59,6 +60,7 @@ namespace TODO {
         static std::vector<TodoTask> read_tasks() {
             WFile file(TODO_FILE);
             const auto lines = file.read_lines();
+
             std::vector<TodoTask> tasks;
             tasks.reserve(lines.size());
 
@@ -72,21 +74,14 @@ namespace TODO {
                     ++position;
 
                 unsigned int task_number = 0;
-                if (position == 0 || position >= line.size() || line[position] != '.') {
-                    throw todo_file_exception(
-                        "Invalid Todofile entry on line " + std::to_string(line_index + 1) + "."
-                    );
-                }
 
-                const auto parsed_number = std::from_chars(
-                    line.data(), line.data() + position, task_number
-                );
-                if (parsed_number.ec != std::errc{} ||
-                    task_number != tasks.size() + 1) {
-                    throw todo_file_exception(
-                        "Task numbers in Todofile must be consecutive, starting at 1."
-                    );
-                }
+                if (position == 0 || position >= line.size() || line[position] != '.')
+                    throw todo_file_exception("Invalid Todofile entry on line " + std::to_string(line_index + 1) + ".");
+
+                const auto parsed_number = std::from_chars(line.data(), line.data() + position, task_number);
+
+                if (parsed_number.ec != std::errc{} || task_number != tasks.size() + 1)
+                    throw todo_file_exception("Task numbers in Todofile must be consecutive, starting at 1.");
 
                 ++position;
                 while (position < line.size() && (line[position] == ' ' || line[position] == '\t'))
@@ -96,10 +91,7 @@ namespace TODO {
                     (line[position + 1] != ' ' && line[position + 1] != 'X' &&
                         line[position + 1] != 'x') ||
                     line[position + 2] != ']') {
-                    throw todo_file_exception(
-                        "Invalid task status on Todofile line " +
-                        std::to_string(line_index + 1) + "."
-                    );
+                    throw todo_file_exception("Invalid task status on Todofile line " + std::to_string(line_index + 1) + ".");
                 }
 
                 const bool checked = line[position + 1] == 'X' || line[position + 1] == 'x';
@@ -174,6 +166,14 @@ namespace TODO {
             return resultado;
         }
 
+        static bool validate_if_task_exists(const std::vector<TodoTask>& tasks, std::size_t id) {
+            for (std::size_t i = 0; i < tasks.size(); ++i)
+                if (i == id)
+                    return true;
+
+            return false;
+        }
+
     public:
         virtual ~basic_command() = default;
         virtual bool run() = 0;
@@ -210,6 +210,12 @@ namespace TODO {
 
             WFile config_file(CONFIG_FILE);
             config_file.create(CONFIG_FILE);
+
+            WFile link_file(LINK_FILE);
+            link_file.create();
+
+            WFile link_count(LINK_COUNT);
+            link_count.create();
 
             bool nosql = false;
             if (flags.size() > 0) 
@@ -271,6 +277,24 @@ namespace TODO {
     };
 
     class list_command: public basic_command {
+    private:
+        link_file_handler lfh;
+
+        bool list_priorities() {
+            const auto& pt = lfh.read_links();
+
+            if (pt.size() <= 0) {
+                dialog::report(report_types::warn, "No priority was registred yet.");
+                return false;
+            }
+
+            for (const auto& i: pt) 
+                dialog::report(report_types::log, "Task %d --> %s", i.task_id, stringfy((priority) i.priority).c_str());
+
+            dialog::report(report_types::success, "All tasks successfully shown.");
+            return true;
+        }
+
     public:
         using basic_command::basic_command;
 
@@ -284,7 +308,9 @@ namespace TODO {
             for (const auto& flag : flags) {
                 if (flag == "--checked" || flag == "-c") {
                     checked_only = true;
-                } 
+                } else if (flag == "--priorities" || flag == "-p") {
+                    return list_priorities();
+                }
                 else if (flag == "--unchecked" || flag == "-un") {
                     unchecked_only = true;
                 } 
@@ -323,7 +349,7 @@ namespace TODO {
             if (!printed)
                 dialog::report(report_types::warn, "No tasks found.");
             else    
-                dialog::report(report_types::info, "All tasks successfully shown.");
+                dialog::report(report_types::success, "All tasks successfully shown.");
 
             return true;
         }
@@ -373,7 +399,7 @@ namespace TODO {
             std::string holder = std::string("Added task '");
             holder += title + "' to Todofile.";
 
-            const char* message = logger.log_message(holder);
+            const std::string message = logger.log_message(holder);
             this->logger.generate(message);
 
             dialog::report(
@@ -410,7 +436,7 @@ namespace TODO {
 
             config.decrement_count();
 
-            const char* message = logger.log_message(holder);
+            const std::string message = logger.log_message(holder);
             this->logger.generate(message);
 
             dialog::report(report_types::success, "Removed task %u.", number);
@@ -420,6 +446,8 @@ namespace TODO {
 
     class help_command: public basic_command {
     private:
+        std::vector<std::string> cmds_with_subcmd;
+
         void show_all_commands() {
             #define X(command, description, implementation) \
                 std::cout << "  " << command << " - " << description << '\n';
@@ -427,7 +455,18 @@ namespace TODO {
             #undef X
         }
 
+        bool has_subcommands(const std::vector<std::string>& cmds, const std::string& cmd) {
+            for (const auto& i: cmds) 
+                if (i == cmd)
+                    return true;
+
+            return false;
+        }
+
         void specify_command(const std::string& command) {
+            cmds_with_subcmd.push_back("subtask");
+            cmds_with_subcmd.push_back("priority");
+
             bool found = false;
 
             #define X(command_name, description, implementation) \
@@ -441,7 +480,7 @@ namespace TODO {
             if (!found)
                 throw todo_file_exception("Unknown command: '" + command + "'.");
 
-            if (command == "subtask") {
+            if (has_subcommands(cmds_with_subcmd, command)) {
                 std::cout << "\nSubcommands:\n";
                 #define X(command_name, subcommand, description) \
                     if (command == command_name) \
@@ -529,6 +568,7 @@ namespace TODO {
         bool run() override {
             arguments.push_back(std::string("checkable"));
             arguments.push_back(std::string("readable"));
+            arguments.push_back(std::string("editable"));
             arguments.push_back(std::string("nosql"));
 
 
@@ -538,7 +578,7 @@ namespace TODO {
                 return true;
             }
             if (flags.size() != 2)
-                throw todo_file_exception("Usage: todo config <checkable|readable|nosql> <true|false>");
+                throw todo_file_exception("Usage: todo config <checkable|readable|editable|nosql> <true|false>");
 
             if (!in_list(flags, arguments))
                 throw todo_file_exception("Config option must be valid.");
@@ -604,7 +644,7 @@ namespace TODO {
             
             write_tasks(tasks);
 
-            auto message = logger.log_message(holder);
+            const std::string message = logger.log_message(holder);
             logger.generate(message);
             
             dialog::report(report_types::success, "Task %u is now %s.", number, tasks[number - 1].checked ? "checked" : "unchecked");
@@ -618,14 +658,16 @@ namespace TODO {
 
         bool run() override {
             if (flags.size() > 1)
-                throw todo_file_exception("Usage: todo count [--checked|--unchecked|--logs|--subtasks]");
+                throw todo_file_exception("Usage: todo count [--checked|--unchecked|--logs|--subtasks|--priorities]");
 
             TODOConfig config;
             std::size_t count = config.read_count();
+
             if (!flags.empty()) {
                 if (has_flag(flags, "--checked", "-c")) {
                     const auto tasks = read_tasks();
                     validate_task_count(tasks, count);
+
                     count = 0;
                     for (const auto& task : tasks)
                         count += task.checked ? 1 : 0;
@@ -633,24 +675,33 @@ namespace TODO {
                 else if (has_flag(flags, "--unchecked", "-un")) {
                     const auto tasks = read_tasks();
                     validate_task_count(tasks, count);
+
                     count = 0;
                     for (const auto& task : tasks)
                         count += task.checked ? 0 : 1;
                 } 
                 else if (has_flag(flags, "--logs", "-l")) {
                     count = 0;
+
                     for (const auto& i: fs::directory_iterator(LOG_DIRECTORY))
                         if (i.is_regular_file() && i.path().extension() == ".log")
                             ++count;
                 } 
                 else if (has_flag(flags, "--subtasks", "-st")) {
                     std::unique_ptr<subtask_handler> handler;
+                    
                     if (config.read_config().nosql)
                         handler = std::make_unique<subtask_nosql_handler>();
                     else
                         handler = std::make_unique<subtask_sql_handler>();
+
                     const auto st = handler->read_subtasks();
                     count = st.size();
+                }
+                else if (has_flag(flags, "--priorities", "-p")) {
+                    TODO::link_file_handler h;
+
+                    count = h.read_count();
                 }
                 else {
                     throw todo_file_exception("Unexpected flag: '" + flags.front() + "'");
@@ -671,26 +722,35 @@ namespace TODO {
 
         bool run() override {
             if (flags.empty()) {
-                dialog::report(report_types::error, "no argument was given.");
+                dialog::report(report_types::error, "No argument was given.");
                 return false;
             }
 
             if (flags.size() <= 1) {
-                dialog::report(report_types::error, "too few arguments.");
+                dialog::report(report_types::error, "Too few arguments.");
                 return false;
             }
 
             if (flags.size() != 2) {
-                dialog::report(report_types::error, "too many arguments!");
+                dialog::report(report_types::error, "Too many arguments!");
                 return false;
             }
+
+            TODOConfig c;
+            const auto& config = c.read_config();
+
+            if (!config.editable) {
+                dialog::report(report_types::error, "Not allowed to edit tasks!");
+                return config.editable;
+            }
+
 
             WFile file = WFile(TODO_FILE);
 
             int index = std::stoi(flags[0]);
 
             if (index <= 0) {
-                dialog::report(report_types::error, "wrong index was given: %d", index);
+                dialog::report(report_types::error, "Wrong index was given: %d", index);
                 return false;
             }
 
@@ -779,8 +839,10 @@ namespace TODO {
             ensure_file(COUNTER_FILE, "0");
 
             const auto tasks = read_tasks();
+
             TODOConfig configs;
             configs.write_count(tasks.size());
+
             dialog::report(report_types::success, "Task count restored.");
         }    
 
@@ -872,6 +934,31 @@ namespace TODO {
             file.write(BASIC_CONFIG);
         }
 
+        void restore_link(bool affirmative) {
+            if (!affirmative)
+                return;
+
+            ensure_directory(TODO_REPO);
+            ensure_directory(PRIORITY_DIRECTORY);
+            
+            ensure_file(LINK_FILE, "");
+            ensure_file(LINK_COUNT, "0");
+
+            link_file_handler lfh;
+
+            const auto& pt = lfh.read_links();
+            const std::size_t count = lfh.read_count();
+
+            if (count != pt.size()) {
+                WFile f(LINK_COUNT);
+                f.write(std::to_string(pt.size()).c_str());
+
+                dialog::report(report_types::success, "Todofile tasks priority count restored.");
+            }
+
+            dialog::report(report_types::success, "Todofile tasks priority repository restored.");
+        }
+
     public:
         using basic_command::basic_command;
 
@@ -879,25 +966,30 @@ namespace TODO {
             bool rcount     = false, 
                  rrepo      = false,
                  rsub       = false,
-                 rconfig    = false;
+                 rconfig    = false,
+                 rlink      = false;
 
             if (flags.empty()) {
                 rcount  = true;
                 rrepo   = true;
                 rsub    = true;
                 rconfig = true;
+                rlink   = true;
             } 
             else {
                 rcount  = has_flag(flags, "--count",   "-c");
                 rrepo   = has_flag(flags, "--repo",    "-r");
                 rsub    = has_flag(flags, "--sub",     "-s");
-                rconfig = has_flag(flags, "--config", "-cf");
+                rconfig = has_flag(flags, "--config",  "-cf");
+                rlink   = has_flag(flags, "--link",    "-l");
 
                 for (const auto& flag : flags) {
                     if (flag != "--count" && flag != "-c" &&
                         flag != "--repo" && flag != "-r" &&
                         flag != "--sub" && flag != "-s" &&
-                        flag != "--config" && flag != "-cf") {
+                        flag != "--config" && flag != "-cf" &&
+                        flag != "--link" && flag != "-l") 
+                    {
                         throw todo_file_exception("Unexpected restore option: '" + flag + "'");
                     }
                 }
@@ -907,6 +999,7 @@ namespace TODO {
             restore_configs(rconfig);
             restore_count(rcount);
             recreate_subtasks(rsub);
+            restore_link(rlink);
 
             std::string holder;
 
@@ -915,9 +1008,10 @@ namespace TODO {
             if (rrepo)   holder += "directories | ";
             if (rsub)    holder += "subtask database | ";
             if (rconfig) holder += "config file reseted | ";
+            if (rlink)   holder += "task priorities restored |";
             holder += ";";
 
-            const char* message = logger.log_message(holder);
+            const std::string message = logger.log_message(holder);
             logger.generate(message);
 
             return true;
@@ -1047,6 +1141,13 @@ namespace TODO {
          * <NEW_DESC> --> new description ('--' if don't want to change that)
          */
         bool edit() {
+            const auto& c = config.read_config();
+
+            if (!c.editable) {
+                dialog::report(report_types::error, "Not allowed to edit subtasks!");
+                return c.editable;
+            }
+
             const unsigned int parsed_subtask_id = parse_task_number(flags[1]);
             if (parsed_subtask_id > static_cast<unsigned int>(std::numeric_limits<int>::max()))
                 throw todo_file_exception("Subtask ID is too large.");
@@ -1169,6 +1270,160 @@ namespace TODO {
             }
             else {
                 throw todo_file_exception("Unknown subcommand called '" + flags[0] + "'.");
+            }
+
+            return true;
+        }
+    };
+
+    class priority_command: public basic_command {
+    private:
+        link_file_handler lfh;
+
+        const std::string stringfy(priority p) {
+            switch (p) {
+                case priority::NONE:            return "none";
+                case priority::LOW:             return "low";
+                case priority::MEDIUM:          return "medium";
+                case priority::HIGH:            return "high";
+                case priority::URGENT:          return "urgent";
+                default:                        throw todo_file_exception("Unknown type of priority.");
+            }
+        }
+
+        priority to_priority(const std::string& str) {
+            std::string p = "";
+
+            for (const auto& i: str) 
+                p += std::toupper(i);
+            
+            if (p == "NONE")        return priority::NONE;
+            if (p == "LOW")         return priority::LOW;
+            if (p == "MEDIUM")      return priority::MEDIUM;
+            if (p == "HIGH")        return priority::HIGH;
+            if (p == "URGENT")      return priority::URGENT;
+
+            throw todo_file_exception("Unknow type of priority.");
+        }
+
+        bool verify(int* id) {
+            TODOConfig c;
+            const auto previous = c.read_count();
+
+            if (*id <= 0) {
+                dialog::report(report_types::error, "Wrong index was given: %d", *id);
+                return false;
+            }
+
+            if (*id > previous) {
+                dialog::report(report_types::error, "Task of index %d does not exists.", *id);
+                return false;
+            }
+
+            return true;
+        }
+
+        void new_priority(priority p, const int task_id) {
+            WFile f = WFile(LINK_FILE);
+            const std::size_t count = lfh.read_count();
+
+            if (count < 0)
+                throw todo_file_exception("Priority counter file was obstructed: " + std::string("count is negative."));
+
+            this->validate_if_task_exists(this->read_tasks(), task_id);
+
+            const auto& pt = lfh.read_links();
+
+            if (count != pt.size())
+                throw todo_file_exception("Priority counter file was obstructed: " + std::string("count does not match actual priorities count."));
+            
+            for (const auto& i: pt) {
+                if (i.task_id == task_id) {
+                    if (i.priority == (int) p) {
+                        dialog::report(report_types::warn, "Task priority is already set to '%s'", stringfy(p).c_str());
+                        return;
+                    }
+
+                    std::string holder = std::string(std::to_string(i.task_id) + ":" + std::to_string((int) p));
+                    f.print(holder.c_str(), i.line);
+
+                    std::string log = std::string("Priority on task " + std::to_string(i.task_id) + " was changed from '" + 
+                        stringfy((priority) i.priority) + "' to '" + stringfy((priority) p) + "'.");
+
+                    dialog::report(report_types::success, log.c_str());
+
+                    const auto msg = this->logger.log_message(log);
+                    this->logger.generate(msg);
+
+                    return;
+                }
+            }
+
+            // Exemplos: 
+            //      1:3
+            //      2:1
+            //      3:0
+            std::string holder = std::string(std::to_string(task_id) + ":" + std::to_string((std::size_t) p));
+
+            f.append(holder.c_str());
+            lfh.increment_count();
+
+            dialog::report(report_types::success, "Priority '%s' was added to task %d", stringfy(p).c_str(), task_id);
+        }
+
+        void fetch_priority(priority p) {
+            const auto& pt = lfh.read_links();
+            std::size_t count = 0;
+            
+            for (std::size_t i = 0; i < pt.size(); ++i) {
+                if (pt[i].priority == (int) p) {
+                    const auto& t = this->read_tasks();
+                    TodoTask T;
+
+                    for (std::size_t j = 0; j < t.size(); ++j)
+                        if ((j + 1) == pt[i].task_id)
+                            T = t[j];
+
+                    dialog::report(report_types::log, "Task \"%s\" : current '%s' : priority '%s'", 
+                        T.title.c_str(), 
+                        dialog::output((T.checked ? dialog_types::dark_green : dialog_types::dark_red), (T.checked ? "done" : "pending")).c_str(), 
+                        format_output(stringfy((priority) pt[i].priority), (priority) pt[i].priority).c_str()
+                    );
+                    ++count;
+                }
+            }
+
+            dialog::report(report_types::info, "Final count: %d", count);
+            dialog::report(report_types::success, "All tasks successfully shown.");
+        }
+
+    public:
+        using basic_command::basic_command;
+
+        bool run() override {
+            const auto& subcmd = flags[0];
+
+            if (subcmd == "new") {
+                CHECK_FLAGS_SIZE(3);
+
+                int id = std::stoi(flags[1]);
+
+                if (!verify(&id))
+                    return false;
+
+                const auto priority = to_priority(flags[2]);
+
+                new_priority(priority, id);
+            } 
+            else if (subcmd == "fetch") {
+                CHECK_FLAGS_SIZE(2);
+                const auto priority = to_priority(flags[1]);
+
+                fetch_priority(priority);
+            }
+            else {
+                dialog::report(report_types::error, "No such subcommand exists: %s", subcmd.c_str());
+                return false;
             }
 
             return true;
