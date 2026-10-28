@@ -8,3 +8,4 @@
 8. [X] Sistema de logs para os comandos 'add', 'remove', 'switch', 'edit', 'config' e 'check'
 9. [X] Nova flag '--logs', presente nos comandos 'list' & 'count', o qual é responsável por fazer a contagem/listagem dos arquivos logs presentes no repositório do Todofile
 10. [X] Comando de restauração de contagem e repositório desenvolvido e funcionando 
+11. [X] Subcomandos 'new' e 'fetch' para o comando 'priority'
