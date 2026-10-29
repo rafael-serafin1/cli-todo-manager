@@ -32,6 +32,7 @@
 #endif
 
 #define BASIC_CONFIG "checkable=true\nreadable=true\neditable=true\nnosql=false\n"
+#define BASIC_CONFIG_LINE "checkable=true\nreadable=true\neditable=true\nnosql={}\n"
 
 #define CHECK_FLAGS_SIZE(expected)  \
     if (flags.size() < expected) throw todo_file_exception("Too few arguments")
@@ -43,6 +44,7 @@ namespace TODO {
     protected:
         const std::vector<std::string> flags;
         log_generator logger = log_generator();
+        TODOConfig config;
 
         bool has_flag(const std::vector<std::string>& flags, const std::string& flag, const std::string& alias) {
             for (const std::string& i: flags)
@@ -51,6 +53,25 @@ namespace TODO {
 
             return false;
         }   
+
+        static void ensure_directory(const fs::path& path) {
+            if (fs::exists(path)) {
+                if (!fs::is_directory(path))
+                    throw todo_file_exception("Repository path is not a directory: " + path.string());
+                return;
+            }
+
+            fs::create_directories(path);
+        }
+
+        static void ensure_file(const char* path, const char* initial_content) {
+            if (fs::exists(path))
+                return;
+
+            WFile file(path);
+            file.create(path);
+            file.write(initial_content);
+        }
 
     public:
         explicit basic_command(const std::vector<std::string>& arguments)
@@ -201,29 +222,23 @@ namespace TODO {
 
             fs::create_directory(LOG_DIRECTORY);
 
-            WFile task_file(TODO_FILE);
-            task_file.create(TODO_FILE);
+            ensure_file(TODO_FILE, "");
 
-            WFile counter_file(COUNTER_FILE);
-            counter_file.create(COUNTER_FILE);
-            counter_file.write("0");
+            ensure_file(COUNTER_FILE, "0");
+            ensure_file(CONFIG_FILE, BASIC_CONFIG);
 
-            WFile config_file(CONFIG_FILE);
-            config_file.create(CONFIG_FILE);
-
-            WFile link_file(LINK_FILE);
-            link_file.create();
-
-            WFile link_count(LINK_COUNT);
-            link_count.create();
+            ensure_file(LINK_FILE, "");
+            ensure_file(LINK_COUNT, "0");
 
             bool nosql = false;
             if (flags.size() > 0) 
                 if (has_flag(flags, "--nosql", "-ns"))
                     nosql = true;
 
-            const std::string CONFIG = std::string(std::format("checkable=true\nreadable=true\nnosql={}\n", ((nosql) ? "true" : "false")));
+            const std::string CONFIG = 
+                std::string(std::format(BASIC_CONFIG_LINE, ((nosql) ? "true" : "false")));
 
+            WFile config_file(CONFIG_FILE);
             config_file.write(CONFIG.c_str());
 
             this->logger.generate(this->logger.log_message("Initialized Todofile repository."));
@@ -268,10 +283,12 @@ namespace TODO {
 
                 this->subtask_init();
                 return true;
-            } 
+            } else if (has_flag(flags, "--nosql", "-ns"))
+                goto normal;
             else if (flags.size() > 0)
                 throw todo_file_exception("Too much arguments.");
-            
+        
+        normal:
             return this->normal_init();
         }
     };
@@ -754,6 +771,12 @@ namespace TODO {
                 return false;
             }
 
+            const auto& tasks = this->read_tasks();
+            if (tasks.size() < index) {
+                dialog::report(report_types::error, "Index out of range: %d", index);
+                return false;
+            }
+
             const std::string previous_content = file.read(index);
             std::string content = previous_content;
 
@@ -781,7 +804,7 @@ namespace TODO {
             file.print(content.c_str(), index);
 
             dialog::report(report_types::info,
-                "Task of number %d was edited.\n",
+                "Task of number %d was edited.",
                 index, previous_content.c_str(), content.c_str());
 
             return true;
@@ -812,25 +835,6 @@ namespace TODO {
 
     class restore_command: public basic_command {
     protected:
-        static void ensure_directory(const fs::path& path) {
-            if (fs::exists(path)) {
-                if (!fs::is_directory(path))
-                    throw todo_file_exception("Repository path is not a directory: " + path.string());
-                return;
-            }
-
-            fs::create_directories(path);
-        }
-
-        static void ensure_file(const char* path, const char* initial_content) {
-            if (fs::exists(path))
-                return;
-
-            WFile file(path);
-            file.create(path);
-            file.write(initial_content);
-        }
-
         void restore_count(bool affirmative) {
             if (!affirmative)
                 return;
@@ -1280,32 +1284,6 @@ namespace TODO {
     private:
         link_file_handler lfh;
 
-        const std::string stringfy(priority p) {
-            switch (p) {
-                case priority::NONE:            return "none";
-                case priority::LOW:             return "low";
-                case priority::MEDIUM:          return "medium";
-                case priority::HIGH:            return "high";
-                case priority::URGENT:          return "urgent";
-                default:                        throw todo_file_exception("Unknown type of priority.");
-            }
-        }
-
-        priority to_priority(const std::string& str) {
-            std::string p = "";
-
-            for (const auto& i: str) 
-                p += std::toupper(i);
-            
-            if (p == "NONE")        return priority::NONE;
-            if (p == "LOW")         return priority::LOW;
-            if (p == "MEDIUM")      return priority::MEDIUM;
-            if (p == "HIGH")        return priority::HIGH;
-            if (p == "URGENT")      return priority::URGENT;
-
-            throw todo_file_exception("Unknow type of priority.");
-        }
-
         bool verify(int* id) {
             TODOConfig c;
             const auto previous = c.read_count();
@@ -1371,9 +1349,31 @@ namespace TODO {
             dialog::report(report_types::success, "Priority '%s' was added to task %d", stringfy(p).c_str(), task_id);
         }
 
+    public:
+        using basic_command::basic_command;
+
+        bool run() override {
+            CHECK_FLAGS_SIZE(2);
+            int id = std::stoi(flags[0]);
+
+            if (!verify(&id))
+                return false;
+
+            const auto priority = to_priority(flags[1]);
+
+            new_priority(priority, id);
+
+            return true;
+        }
+    };
+
+
+    class fetch_command: public basic_command {
+    private:
+        link_file_handler lfh;
+
         void fetch_priority(priority p) {
             const auto& pt = lfh.read_links();
-            std::size_t count = 0;
             
             for (std::size_t i = 0; i < pt.size(); ++i) {
                 if (pt[i].priority == (int) p) {
@@ -1389,44 +1389,60 @@ namespace TODO {
                         dialog::output((T.checked ? dialog_types::dark_green : dialog_types::dark_red), (T.checked ? "done" : "pending")).c_str(), 
                         format_output(stringfy((priority) pt[i].priority), (priority) pt[i].priority).c_str()
                     );
-                    ++count;
                 }
             }
 
-            dialog::report(report_types::info, "Final count: %d", count);
             dialog::report(report_types::success, "All tasks successfully shown.");
         }
 
     public:
         using basic_command::basic_command;
 
+        // todo fetch -p high       --> mostra as tasks com prioridade high
+        // todo fetch 5             --> mostra a task 5
         bool run() override {
-            const auto& subcmd = flags[0];
-
-            if (subcmd == "new") {
+            if (has_flag(flags, "--priority", "-p")) {
                 CHECK_FLAGS_SIZE(3);
-
-                int id = std::stoi(flags[1]);
-
-                if (!verify(&id))
-                    return false;
-
-                const auto priority = to_priority(flags[2]);
-
-                new_priority(priority, id);
+                
+                fetch_priority(to_priority(flags[1]));
             } 
-            else if (subcmd == "fetch") {
-                CHECK_FLAGS_SIZE(2);
-                const auto priority = to_priority(flags[1]);
+            else if (flags.size() <= 2) {
+                const std::size_t task_id = std::stoi(flags[0]);
+                const auto& tasks = read_tasks();
+                
+                for (std::size_t i = 0; i < tasks.size(); ++i) {
+                    if ((i + 1) == task_id) {
+                        const auto& task = tasks[i];
 
-                fetch_priority(priority);
+                        dialog::report(report_types::log, "Task %d -> %s", task_id, task.title.c_str());
+                        break;
+                    }
+                }
+                
+                dialog::report(report_types::success, "Task %d successfully shown.", task_id);
+
+                if (has_flag(flags, "--all", "-a")) {
+                    std::unique_ptr<subtask_handler> h;
+
+                    if (config.read_config().nosql)
+                        h = std::make_unique<subtask_nosql_handler>();
+                    else 
+                        h = std::make_unique<subtask_sql_handler>();
+
+                    const auto& subts = h->read_subtasks(task_id);
+
+                    for (const auto& subt: subts)
+                        dialog::report(report_types::log, "Subtask %d -> %s", subt.id, subt.subtask.c_str());
+
+                    dialog::report(report_types::success, "Subtasks related to %d successfully shown.", task_id);
+                }
             }
             else {
-                dialog::report(report_types::error, "No such subcommand exists: %s", subcmd.c_str());
+                dialog::report(report_types::error, "Unknown type of argument for `todo fetch`: %d", flags[0].c_str());
                 return false;
             }
 
             return true;
         }
-    };
+    }; 
 }

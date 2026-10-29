@@ -15,8 +15,16 @@ comp:
 	g++ $(IMPORTANT_FLAGS) $(PLATFORM_FLAGS) $(FILES) -o ./bin/todo
 
 all:
-	g++ $(IMPORTANT_FLAGS) $(EXTRA_FLAGS) $(PLATFORM_FLAGS) $(FILES) $(INCLUDE) -o ./bin/todo
+	g++ $(IMPORTANT_FLAGS) $(PLATFORM_FLAGS) $(FILES) $(INCLUDE) -o ./bin/todo
 
 run:
 	gcc -c ./include/sqlite3.c -o sqlite3.o
 	g++ $(IMPORTANT_FLAGS) $(EXTRA_FLAGS) $(PLATFORM_FLAGS) $(FILES) $(INCLUDE) -o ./bin/todo
+
+
+docker:
+	docker build -t cli-todo-manager .
+	docker run -it --rm cli-todo-manager
+
+cont:
+	docker run -it --rm cli-todo-manager
