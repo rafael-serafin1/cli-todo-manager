@@ -15,15 +15,14 @@
     X("check",       "Checks if repository/Todofile is obstructed", check_command)                          \
     X("restore",     "Restore Todofile repository", restore_command)                                        \
     X("subtask",     "Adds a subtask to an existing task", subtask_command)                                 \
-    X("priority",    "Adds priority to an Todofile task", priority_command)
+    X("priority",    "Adds priority to an Todofile task", priority_command)                                 \
+    X("fetch",       "Fetch task by id or priority", fetch_command)
 
 #define TODO_SUBCOMMANDS                                                                                                                        \
     X("subtask", "add <TASK_ID> \"<SUBTASK_DESC>\"",    "Adds a new subtask to the database")                                                   \
     X("subtask", "remove <SUBTASK_ID>",                 "Removes a subtask from the database")                                                  \
     X("subtask", "list",                                "Show all subtasks recorded")                                                           \
-    X("subtask", "edit <ID> \"<NEW_DESC>\"",            "Edits an existing task (Use \"--\" in <NEW_DESC> to avoid change its description)")    \
-    X("priority","new <ID> \"<PRIORITY>\"",             "Adds/Edits an task priority.")                                                         \
-    X("priority","fetch <PRIORITY>",                    "Fetch all tasks by priority.")
+    X("subtask", "edit <ID> \"<NEW_DESC>\"",            "Edits an existing task (Use \"--\" in <NEW_DESC> to avoid change its description)")    
 
 #define TODO_SUBCOMMANDS_FLAGS                                                                                                          \
     X("subtask", "add",  "--done",                      "-d",   "Declare an subtask as already done")                                   \
@@ -49,7 +48,9 @@
     X("restore", "--count",      "-c",      "Restore count file only")                          \
     X("restore", "--sub",        "-s",      "Restore subtasks database")                        \
     X("restore", "--config",     "-cf",     "Reset configuration to defaults")                  \
-    X("restore", "--link",       "-l",      "Restore priority repo only")                       
+    X("restore", "--link",       "-l",      "Restore priority repo only")                       \
+    X("fetch",   "--priority",   "-p",      "Fetch tasks by priority")                          \
+    X("fetch",   "--all",        "-a",      "Fetch a task by id and all subtasks related")      
 
 
 #ifdef _WIN32
