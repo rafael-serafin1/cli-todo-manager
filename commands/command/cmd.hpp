@@ -79,8 +79,15 @@ namespace TODO {
 
     protected:
         static std::vector<TodoTask> read_tasks() {
-            WFile file(TODO_FILE);
-            const auto lines = file.read_lines();
+            TODOConfig c;
+            WFile* file = nullptr;
+
+            if (c.read_config().readable)
+                file = new WFile(TODO_FILE);
+            else 
+                file = new WFile(UNREADABLE_TODO_FILE);
+
+            const auto lines = file->read_lines();
 
             std::vector<TodoTask> tasks;
             tasks.reserve(lines.size());
@@ -125,6 +132,7 @@ namespace TODO {
                 tasks.push_back({checked, line.substr(position)});
             }
 
+            delete file;
             return tasks;
         }
 
@@ -137,8 +145,16 @@ namespace TODO {
                 content += '\n';
             }
 
-            WFile file(TODO_FILE);
-            file.write(content.c_str());
+            TODOConfig c;
+            WFile* file = nullptr;
+
+            if (c.read_config().readable)
+                file = new WFile(TODO_FILE);
+            else 
+                file = new WFile(UNREADABLE_TODO_FILE);
+
+            file->write(content.c_str());
+            delete file;
         }
 
         static void validate_task_count(const std::vector<TodoTask>& tasks, std::size_t count) {
@@ -577,6 +593,29 @@ namespace TODO {
             return false;
         }
 
+        void handle_readable_config(const std::string& config, const std::string& value) {
+            if (config != "readable")
+                return;
+
+            WFile f("placeholder");
+            bool Value = parse_boolean(value);
+
+            if (Value) {
+                WFile f(UNREADABLE_TODO_FILE);
+                const auto& tasks = f.read();
+
+                ensure_file(TODO_FILE, tasks.c_str());
+                f.recycle(UNREADABLE_TODO_FILE);
+            }
+            else {
+                WFile f(TODO_FILE);
+                const auto& tasks = f.read();
+
+                ensure_file(UNREADABLE_TODO_FILE, tasks.c_str());
+                f.recycle(TODO_FILE);
+            }
+        }
+
         std::vector<std::string> arguments;
 
     public:
@@ -608,11 +647,13 @@ namespace TODO {
                 (parse_boolean(flags[1]) ? "true" : "false");
 
             const auto setting_position = content.find(flags[0] + "=");
+
             if (setting_position == std::string::npos) {
                 if (!content.empty() && content.back() != '\n')
                     content += '\n';
                 content += setting + '\n';
-            } else {
+            } 
+            else {
                 const auto line_end = content.find('\n', setting_position);
                 content.replace(
                     setting_position,
@@ -623,6 +664,8 @@ namespace TODO {
                 );
             }
 
+            handle_readable_config(flags[0], flags[1]);
+
             std::string holder = std::string("Configuration '");
             holder += flags[0] + "' was set to '" + flags[1] + "'.";
 
@@ -631,6 +674,7 @@ namespace TODO {
 
             file.write(content.c_str());
             dialog::report(report_types::success, "'%s' set to %s.", flags[0].c_str(), flags[1].c_str());
+
             return true;
         }
     };
@@ -706,7 +750,7 @@ namespace TODO {
                 } 
                 else if (has_flag(flags, "--subtasks", "-st")) {
                     std::unique_ptr<subtask_handler> handler;
-                    
+
                     if (config.read_config().nosql)
                         handler = std::make_unique<subtask_nosql_handler>();
                     else
@@ -759,10 +803,13 @@ namespace TODO {
             if (!config.editable) {
                 dialog::report(report_types::error, "Not allowed to edit tasks!");
                 return config.editable;
-            }
+            }   
 
-
-            WFile file = WFile(TODO_FILE);
+            WFile* file = nullptr;
+            if (config.readable)
+                file = new WFile(TODO_FILE);
+            else
+                file = new WFile(UNREADABLE_TODO_FILE);
 
             int index = std::stoi(flags[0]);
 
@@ -777,7 +824,7 @@ namespace TODO {
                 return false;
             }
 
-            const std::string previous_content = file.read(index);
+            const std::string previous_content = file->read(index);
             std::string content = previous_content;
 
             const std::size_t status_end = content.find(']');
@@ -801,12 +848,13 @@ namespace TODO {
             auto message = logger.log_message(holder);
             logger.generate(message);
 
-            file.print(content.c_str(), index);
+            file->print(content.c_str(), index);
 
             dialog::report(report_types::info,
                 "Task of number %d was edited.",
                 index, previous_content.c_str(), content.c_str());
 
+            delete file;
             return true;
         }
     };
@@ -854,10 +902,47 @@ namespace TODO {
             if (!affirmative)
                 return;
 
-            if (!fs::is_regular_file(TODO_FILE))
-                throw todo_file_exception("Repository wasn't initialized!");
+            TODOConfig config;
+            const auto& c = config.read_config();
+
+            if (c.readable) {
+                if (!fs::exists(TODO_REPO))
+                    throw todo_file_exception("Repository wasn't initialized!");
+            }
 
             ensure_directory(TODO_REPO);
+
+            if (!c.readable) {
+                if (fs::exists(TODO_FILE)) {
+                    WFile f(TODO_FILE);
+                    ensure_file(UNREADABLE_TODO_FILE, "");
+                    
+                    WFile uf(UNREADABLE_TODO_FILE);
+
+                    const auto& tasks = f.read();
+                    uf.write(tasks.c_str());
+
+                    f.recycle(TODO_FILE);
+                }
+
+                ensure_file(UNREADABLE_TODO_FILE, "");
+            } 
+            else {
+                if (fs::exists(UNREADABLE_TODO_FILE)) {
+                    WFile f(UNREADABLE_TODO_FILE);
+                    ensure_file(TODO_FILE, "");
+                    
+                    WFile uf(TODO_FILE);
+
+                    const auto& tasks = f.read();
+                    uf.write(tasks.c_str());
+
+                    f.recycle(UNREADABLE_TODO_FILE);
+                }
+
+                ensure_file(TODO_FILE, "");
+            }
+
             ensure_directory(CONFIG_DIRECTORY);
             ensure_directory(LOG_DIRECTORY);
             ensure_directory(PRIORITY_DIRECTORY);
@@ -865,7 +950,6 @@ namespace TODO {
             ensure_file(COUNTER_FILE, "0");
 
             const auto tasks = read_tasks();
-            TODOConfig config;
             config.write_count(tasks.size());
 
             #ifdef _WIN32
@@ -904,7 +988,8 @@ namespace TODO {
                     if (!fs::remove(TODO_SUBTASKS_NOSQL))
                         throw todo_file_exception("Could not remove the migrated subtask database.");
                 }
-            } else {
+            } 
+            else {
                 subtask_nosql_handler h;
                 const bool nosql_exists = fs::exists(TODO_SUBTASKS_NOSQL);
                 const bool sql_exists = fs::exists(TODO_SUBTASKS_SQL);

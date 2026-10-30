@@ -65,7 +65,8 @@
     #define LINK_FILE       ".todo\\link\\link.bin"
     #define LINK_COUNT      ".todo\\link\\count.bin"
 
-    #define TODO_FILE       ".\\Todofile\0"
+    #define TODO_FILE                   ".\\Todofile\0"
+    #define UNREADABLE_TODO_FILE        ".todo\\Todofile"
 #else
     #define TODO_REPO           ".todo/"
     #define CONFIG_DIRECTORY    ".todo/config"
@@ -78,7 +79,8 @@
     #define LINK_FILE       ".todo/link/LINK.bin"
     #define LINK_COUNT      ".todo/link/COUNT.bin"
 
-    #define TODO_FILE       "./Todofile\0"
+    #define TODO_FILE                   "./Todofile\0"
+    #define UNREADABLE_TODO_FILE        ".todo/Todofile"
 #endif
 
 #endif

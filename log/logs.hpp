@@ -16,6 +16,17 @@
 
 class log_generator {
 private:
+    void create_log_file(const std::string& path) {
+        TODO::WFile f = TODO::WFile(path.c_str());
+
+        try {
+            f.create(path.c_str());
+        } 
+        catch (const TODO::todo_file_exception& ex) { 
+            TODO::dialog::report(report_types::warn, "File '%s' already exists.", path.c_str());
+        }
+    }
+    
 public:
     log_generator() { }
 
@@ -46,14 +57,9 @@ public:
         stream << std::put_time(log_local, "%m-%d-%y");
 
         path += stream.str() + ".log";
+        
         TODO::WFile f = TODO::WFile(path.c_str());
-
-        try {
-            f.create(path.c_str());
-        } 
-        catch (const TODO::todo_file_exception& ex) { 
-            TODO::dialog::report(report_types::warn, "File '%s' already exists.", path.c_str());
-        }
+        create_log_file(path);
 
         f.append(message.c_str());
     }
