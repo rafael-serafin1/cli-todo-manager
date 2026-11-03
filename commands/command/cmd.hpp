@@ -221,13 +221,29 @@ namespace TODO {
         bool normal_init() {
             namespace fs = std::filesystem;
             const fs::path root(TODO_REPO);
-            
-            if (fs::exists(root)) {
+
+            const bool repository_initialized =
+                fs::is_directory(root / "config") &&
+                fs::is_directory(root / "logs") &&
+                fs::is_directory(root / "link") &&
+                fs::is_regular_file(TODO_FILE) &&
+                fs::is_regular_file(CONFIG_FILE) &&
+                fs::is_regular_file(COUNTER_FILE) &&
+                fs::is_regular_file(LINK_FILE) &&
+                fs::is_regular_file(LINK_COUNT);
+
+            if (repository_initialized) {
                 dialog::report(report_types::error, "Todofile repository already exists!");
                 return false;
             }
 
-            fs::create_directories(root / "config");
+            const bool config_file_exists = fs::exists(CONFIG_FILE);
+            const bool nosql = has_flag(flags, "--nosql", "-ns");
+
+            ensure_directory(root);
+            ensure_directory(root / "config");
+            ensure_directory(root / "logs");
+            ensure_directory(root / "link");
 
         #ifdef _WIN32
             if (!SetFileAttributesA(TODO_REPO, FILE_ATTRIBUTE_HIDDEN)) {
@@ -235,8 +251,6 @@ namespace TODO {
                 return false;
             }
         #endif
-
-            fs::create_directory(LOG_DIRECTORY);
 
             ensure_file(TODO_FILE, "");
 
@@ -246,16 +260,13 @@ namespace TODO {
             ensure_file(LINK_FILE, "");
             ensure_file(LINK_COUNT, "0");
 
-            bool nosql = false;
-            if (flags.size() > 0) 
-                if (has_flag(flags, "--nosql", "-ns"))
-                    nosql = true;
-
             const std::string CONFIG = 
                 std::string(std::format(BASIC_CONFIG_LINE, ((nosql) ? "true" : "false")));
 
-            WFile config_file(CONFIG_FILE);
-            config_file.write(CONFIG.c_str());
+            if (!config_file_exists || nosql) {
+                WFile config_file(CONFIG_FILE);
+                config_file.write(CONFIG.c_str());
+            }
 
             this->logger.generate(this->logger.log_message("Initialized Todofile repository."));
 
@@ -275,7 +286,8 @@ namespace TODO {
                 auto handler = subtask_nosql_handler();
                 handler.create_database();
                 handler.create_table();
-            } else {
+            } 
+            else {
                 if (fs::exists(TODO_SUBTASKS_SQL)) 
                     throw todo_file_exception("SQL-based database already exists.");
 
@@ -299,12 +311,20 @@ namespace TODO {
 
                 this->subtask_init();
                 return true;
-            } else if (has_flag(flags, "--nosql", "-ns"))
-                goto normal;
+            } 
+            else if (has_flag(flags, "--all", "-a")) {
+                if (fs::exists(TODO_REPO)) {
+                    dialog::report(report_types::warn, "Todofile repo already exists!");
+                    return false;
+                }
+
+                this->normal_init();
+                this->subtask_init();
+                return true;
+            }
             else if (flags.size() > 0)
                 throw todo_file_exception("Too much arguments.");
-        
-        normal:
+
             return this->normal_init();
         }
     };

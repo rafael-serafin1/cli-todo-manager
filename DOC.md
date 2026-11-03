@@ -253,6 +253,7 @@ existirem, não combina nem remove os registros do banco não selecionado.
 | `.todo/config/config.bin` | Opções de configuração. |
 | `.todo/config/count.bin` | Contagem armazenada das tarefas principais. |
 | `.todo/logs/` | Logs diários de operações. |
+| `.todo/link/` | Arquivos usados para registrar prioridades. |
 | `.todo/subtasks.db` | Banco SQLite de subtarefas. |
 | `.todo/subtasks.json` | Banco JSON de subtarefas. |
 
