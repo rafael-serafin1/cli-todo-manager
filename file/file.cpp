@@ -163,21 +163,27 @@ namespace TODO {
     }
 
     void WFile::create(void) {
+        if (std::filesystem::exists(_path))
+            throw TODO::todo_file_exception("File already exists: " + _path);
+
         const std::string mode = "w" + find_mode(_path.c_str()) + "x";
         FILE* f = fopen(_path.c_str(), mode.c_str());
 
         if (f == NULL)
-            throw TODO::todo_file_exception("File already exists!");
+            throw TODO::todo_file_exception("Failed to create file: " + _path);
 
         fclose(f);
     }
 
     void WFile::create(const char* _Path) {
+        if (std::filesystem::exists(_Path))
+            throw TODO::todo_file_exception(std::string("File already exists: ") + _Path);
+
         const std::string mode = "w" + find_mode(_Path) + "x";
         FILE* f = fopen(_Path, mode.c_str());
 
         if (f == NULL) 
-            throw TODO::todo_file_exception("File already exists!");
+            throw TODO::todo_file_exception(std::string("Failed to create file: ") + _Path);
 
         fclose(f);
     }

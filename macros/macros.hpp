@@ -32,6 +32,8 @@
     X("subtask", "list", "--status \"<STATUS>\"",       "-s",   "Fetch all subtasks by its status")                                     \
 
 #define TODO_FLAGS                                                                              \
+    X("init",    "--all",        "-a",      "Initialize full Todofile repo")                    \
+    X("init",    "--subtasks",   "-st",     "Initialize Subtasks database")                     \
     X("help",    "--specify",    "-sp",     "Specifies an command")                             \
     X("list",    "--logs",       "-l",      "List all logs registed")                           \
     X("list",    "--all",        "-a",      "List all tasks")                                   \
@@ -60,12 +62,12 @@
     #define PRIORITY_DIRECTORY  ".todo\\link"
 
     #define CONFIG_FILE     ".todo\\config\\config.bin"
-    #define COUNTER_FILE    ".todo\\config\\count.bin\0"
+    #define COUNTER_FILE    ".todo\\config\\count.bin"
 
     #define LINK_FILE       ".todo\\link\\link.bin"
     #define LINK_COUNT      ".todo\\link\\count.bin"
 
-    #define TODO_FILE                   ".\\Todofile\0"
+    #define TODO_FILE                   ".\\Todofile"
     #define UNREADABLE_TODO_FILE        ".todo\\Todofile"
 #else
     #define TODO_REPO           ".todo/"

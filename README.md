@@ -289,6 +289,7 @@ current backend setting.
 | `.todo/config/config.bin` | Configuration values. |
 | `.todo/config/count.bin` | Cached number of main tasks. |
 | `.todo/logs/` | Daily operation logs. |
+| `.todo/link/` | Files used to record task priorities. |
 | `.todo/subtasks.db` | SQLite subtask database. |
 | `.todo/subtasks.json` | JSON subtask database. |
 
