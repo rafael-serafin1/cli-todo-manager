@@ -491,55 +491,48 @@ namespace TODO {
     class remove_command: public basic_command {
     private:
         bool range() {
-            try {
-                if (flags[0] != "range") {
-                    dialog::report(report_types::error, "Unexpected argument: '%s'", flags[0].c_str());
-                    return false;
-                }
-
-                CHECK_FLAGS_SIZE(3);
-
-                unsigned int start = parse_task_number(flags[1]);
-                unsigned int end   = parse_task_number(flags[2]);
-
-                if (start > end)
-                    std::swap(start, end);
-
-                const unsigned int distance = (start - end);
-
-                TODOConfig config;
-                const std::size_t count = config.read_count();
-
-                if (start == 0 || end > count)
-                    throw todo_file_exception("Task number does not exist.");
-
-                auto tasks = read_tasks();
-                validate_task_count(tasks, count);
-
-                std::string holder = std::string("Removed tasks in range of ");
-                holder += std::to_string(start) + " to " + std::to_string(end) + " from Todofile, as tasks were:";
-                
-                const std::size_t first = start - 1;
-                const std::size_t last = end; 
-
-                for (std::size_t i = first; i < last; ++i) {
-                    holder += " {\"" + tasks[i].title + "\"} ";
-                    config.decrement_count();
-                }
-
-                tasks.erase(tasks.begin() + first, tasks.begin() + last);
-                write_tasks(tasks);
-                
-                const std::string message = logger.log_message(holder);
-                this->logger.generate(message);
-
-                dialog::report(report_types::success, "Removed task from %u to %u.", start, end);
-                return true;
-            } 
-            catch (const std::exception& ex) {
-                std::printf("%s\n", ex.what());
+            if (flags[0] != "range") {
+                dialog::report(report_types::error, "Unexpected argument: '%s'", flags[0].c_str());
                 return false;
             }
+            CHECK_FLAGS_SIZE(3);
+
+            unsigned int start = parse_task_number(flags[1]);
+            unsigned int end   = parse_task_number(flags[2]);
+
+            if (start > end)
+                std::swap(start, end);
+
+            const unsigned int distance = (start - end);
+
+            TODOConfig config;
+            const std::size_t count = config.read_count();
+
+            if (start == 0 || end > count)
+                throw todo_file_exception("Task number does not exist.");
+
+            auto tasks = read_tasks();
+            validate_task_count(tasks, count);
+
+            std::string holder = std::string("Removed tasks in range of ");
+            holder += std::to_string(start) + " to " + std::to_string(end) + " from Todofile, as tasks were:";
+            
+            const std::size_t first = start - 1;
+            const std::size_t last = end; 
+
+            for (std::size_t i = first; i < last; ++i) {
+                holder += " {\"" + tasks[i].title + "\"} ";
+                config.decrement_count();
+            }
+
+            tasks.erase(tasks.begin() + first, tasks.begin() + last);
+            write_tasks(tasks);
+            
+            const std::string message = logger.log_message(holder);
+            this->logger.generate(message);
+
+            dialog::report(report_types::success, "Removed task from %u to %u.", start, end);
+            return true;
         }
 
     public:
@@ -601,6 +594,7 @@ namespace TODO {
         void specify_command(const std::string& command) {
             cmds_with_subcmd.push_back("subtask");
             cmds_with_subcmd.push_back("inline");
+            cmds_with_subcmd.push_back("remove");
 
             bool found = false;
 

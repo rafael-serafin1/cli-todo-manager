@@ -25,7 +25,8 @@
     X("subtask", "list",                                "Show all subtasks recorded")                                                           \
     X("subtask", "edit <ID> \"<NEW_DESC>\"",            "Edits an existing task (Use \"--\" in <NEW_DESC> to avoid change its description)")    \
     X("inline",  "query <PATH> <FLAGS>",                "Query all commentaries with 'TODO' prefix")                                            \
-    X("inline",  "transfer",                            "Transfer all queried commentaries to Todofile")
+    X("inline",  "transfer",                            "Transfer all queried commentaries to Todofile")                                        \
+    X("remove",  "range <START> <END>",                 "Removes tasks in range of tasks number")
 
 #define TODO_SUBCOMMANDS_FLAGS                                                                                                              \
     X("subtask", "add",     "--done",                      "-d",   "Declare an subtask as already done")                                    \
