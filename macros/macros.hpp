@@ -39,7 +39,7 @@
 #define TODO_FLAGS                                                                              \
     X("init",    "--all",        "-a",      "Initialize full Todofile repo")                    \
     X("init",    "--subtasks",   "-st",     "Initialize Subtasks database")                     \
-    X("help",    "--specify",    "-sp",     "Specifies an command")                             \
+    X("help",    "--specify",    "-S",     "Specifies an command")                             \
     X("list",    "--logs",       "-l",      "List all logs registed")                           \
     X("list",    "--all",        "-a",      "List all tasks")                                   \
     X("list",    "--checked",    "-c",      "List all checked todo tasks")                      \
@@ -59,6 +59,25 @@
     X("fetch",   "--priority",   "-p",      "Fetch tasks by priority")                          \
     X("fetch",   "--all",        "-a",      "Fetch a task by id and all subtasks related")      
 
+
+#define DEFAULT_SYNTAX "<FLAGS|ARGUMENTS>"
+#define SYNTAX                                      \
+    X("init", DEFAULT_SYNTAX)                       \
+    X("list", DEFAULT_SYNTAX)                       \
+    X("add", "\"<TASK>\"")                          \
+    X("remove", "<TASK_ID>")                        \
+    X("switch", "<TASK_ID>")                        \
+    X("help", DEFAULT_SYNTAX)                       \
+    X("version", DEFAULT_SYNTAX)                    \
+    X("count", DEFAULT_SYNTAX)                      \
+    X("config", "\"<CONFIG>\" \"<NEW_VALUE>\"")     \
+    X("edit", "<TASK_ID> \"<NEW_TASK>\"")           \
+    X("check", DEFAULT_SYNTAX)                      \
+    X("restore", DEFAULT_SYNTAX)                    \
+    X("subtask", "<SUBCOMMAND> \"<FLAGS|ARGS>\"")   \
+    X("priority", "<TASK_ID> <PRIORITY>")           \
+    X("fetch", "<TASK_ID>")                         \
+    X("inline", "<SUBCOMMAND> <FLAGS|ARGS>")        
 
 #ifdef _WIN32
     #define TODO_REPO           ".todo\\"
