@@ -10,3 +10,4 @@
 10. [X] Comando de restauração de contagem e repositório desenvolvido e funcionando 
 11. [X] Subcomandos 'new' e 'fetch' para o comando 'priority'
 12. [X] Implementar a configuração 'readable' corretamente 
+13. [ ] Trim all whitespaces in a string, in file './utils/string.hpp'

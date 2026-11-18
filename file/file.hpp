@@ -46,6 +46,7 @@ namespace TODO {
 
     public:
         explicit WFile(const char* path) : _path(path) { }
+        explicit WFile() { } 
 
         void find_mode();
         std::string find_mode(const char* path);
