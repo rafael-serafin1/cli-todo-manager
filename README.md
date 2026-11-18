@@ -41,7 +41,7 @@ JSON file backend.
 - Check task-file integrity and restore local repository files.
 - Keep task data and logs on the local machine.
 
-## Requirements
+## Requirements for building
 
 - Windows.
 - GCC/G++ with C++20 support and `make` (for example, MinGW-w64).
@@ -110,6 +110,9 @@ commands, or `todo help --specify subtask` for subtask commands and options.
 | `todo check` | Validate task entries and compare them with the stored count. |
 | `todo restore [options]` | Repair repository files and/or the subtask database. |
 | `todo subtask <action> ...` | Add, list, edit, or remove subtasks. |
+| `todo priority <task-number> <priority>` | Adds a priority to a task. |
+| `todo fetch <task-number>` | Fetch directly a task. |
+| `todo inline <action> [options]` | Query and transfer inline todo tasks to Todofile. |
 
 ### List options
 
@@ -301,8 +304,6 @@ The `.todo` directory is marked hidden on Windows when initialized.
 - The code currently depends on Windows APIs, so Linux and macOS are not
   supported by the current implementation.
 - The JSON backend requires Python 3 and the `py -3` launcher.
-- `readable` is a saved setting but do not alter the main
-  `Todofile` format.
 - Priorities and due dates belong to subtasks; main tasks do not have these
   fields.
 - The repository does not currently include a `LICENSE` file. No reuse or
