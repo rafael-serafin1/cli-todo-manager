@@ -49,6 +49,28 @@ namespace TODO {
         log_generator logger = log_generator();
         TODOConfig config;
 
+        struct FlagInfo {
+            bool found = false;
+            std::string flag;
+            std::size_t position;
+        };
+
+        [[maybe_unused]]
+        FlagInfo query_flag(const std::vector<std::string>& flags, const std::string& flag, const std::string& alias) {
+            FlagInfo f;
+
+            for (std::size_t i = 0; i < flags.size(); ++i) {
+                if (flags[i] == flag or flags[i] == alias) {
+                    f.found     = true;
+                    f.flag      = flags[i];
+                    f.position  = i;
+                }
+            }
+
+            return f;
+        }
+
+        [[deprecated("Use 'query_flag' instead")]]
         bool has_flag(const std::vector<std::string>& flags, const std::string& flag, const std::string& alias) {
             for (const std::string& i: flags)
                 if (i == flag or i == alias)
@@ -522,7 +544,7 @@ namespace TODO {
 
         void specify_command(const std::string& command) {
             cmds_with_subcmd.push_back("subtask");
-            cmds_with_subcmd.push_back("priority");
+            cmds_with_subcmd.push_back("inline");
 
             bool found = false;
 
@@ -532,6 +554,11 @@ namespace TODO {
                     found = true; \
                 }
             TODO_COMMANDS
+            #undef X
+
+            #define X(command_name, syntax)      \
+                if (command == command_name) std::cout << " - todo " << command << " " << syntax << "\n"; 
+                SYNTAX
             #undef X
 
             if (!found)
@@ -571,7 +598,7 @@ namespace TODO {
         bool run() override {
             if (flags.size() <= 0)
                 show_all_commands();
-            else if (has_flag(flags, "--specify", "-sp")) {
+            else if (has_flag(flags, "--specify", "-S")) {
                 if (flags.size() <= 1)
                     throw todo_file_exception("Expected an command after '--specify' flag.");
 

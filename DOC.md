@@ -68,6 +68,9 @@ Exemplo de `Todofile`:
 | `todo check` | Valida as entradas do `Todofile` e a contagem armazenada. |
 | `todo restore [opções]` | Repara arquivos do repositório e/ou banco de subtarefas. |
 | `todo subtask <ação> ...` | Gerencia subtarefas. |
+| `todo fetch <task_id>` | Mostra apenas a tarefa com o ID correspondente. |
+| `todo priority <task_id> <priority>` | Adiciona uma prioridade a uma tarefa. | 
+| `todo inline <subcomando> [opções]` | |
 
 ### Opções de listagem
 
@@ -99,6 +102,16 @@ todo count
 todo count --checked
 todo count --subtasks
 ```
+
+### Opções de tarefas em linha
+
+| Subcomando | Opção | Alias | Descrição |
+| - | - | - | - |
+| `query <ARQUIVO>` | `nenhum` | `nenhum` | Procura por todas as tarefas em linha de um arquivo especificado. |
+| `query <ARQUIVO>` | `--list` | `-l` | Lista todas as tarefas em linha encontradas. |
+| `query <ARQUIVO>` | `--transfer` | `-T` | Transfere as tarefas em linha para um arquivo temporário. |
+| `transfer` | `nenhum` | `nenhum` | Faz a transferência das tarefas no arquivo temporário para o arquivo Todofile. | 
+ 
 
 ## Subtarefas
 
