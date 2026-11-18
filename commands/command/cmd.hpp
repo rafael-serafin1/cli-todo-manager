@@ -1850,9 +1850,7 @@ namespace TODO {
             }
 
             this->write_tasks(tasks);
-
-            for (std::size_t i = 0; i < tasks.size(); ++i)
-                TODOConfig().increment_count();
+            TODOConfig().write_count(tasks.size());
 
             f.recycle(path.c_str());
             
