@@ -16,20 +16,25 @@
     X("restore",     "Restore Todofile repository", restore_command)                                        \
     X("subtask",     "Adds a subtask to an existing task", subtask_command)                                 \
     X("priority",    "Adds priority to an Todofile task", priority_command)                                 \
-    X("fetch",       "Fetch task by id or priority", fetch_command)
+    X("fetch",       "Fetch task by id or priority", fetch_command)                                         \
+    X("inline",      "Search for an inline commentary with 'TODO' prefix", inline_command)
 
 #define TODO_SUBCOMMANDS                                                                                                                        \
     X("subtask", "add <TASK_ID> \"<SUBTASK_DESC>\"",    "Adds a new subtask to the database")                                                   \
     X("subtask", "remove <SUBTASK_ID>",                 "Removes a subtask from the database")                                                  \
     X("subtask", "list",                                "Show all subtasks recorded")                                                           \
-    X("subtask", "edit <ID> \"<NEW_DESC>\"",            "Edits an existing task (Use \"--\" in <NEW_DESC> to avoid change its description)")    
+    X("subtask", "edit <ID> \"<NEW_DESC>\"",            "Edits an existing task (Use \"--\" in <NEW_DESC> to avoid change its description)")    \
+    X("inline",  "query <PATH> <FLAGS>",                "Query all commentaries with 'TODO' prefix")                                            \
+    X("inline",  "transfer",                            "Transfer all queried commentaries to Todofile")
 
-#define TODO_SUBCOMMANDS_FLAGS                                                                                                          \
-    X("subtask", "add",  "--done",                      "-d",   "Declare an subtask as already done")                                   \
-    X("subtask", "list", "--all <TASK_ID>",             "-a",   "Show every single subtask related to that specific task")              \
-    X("subtask", "list", "--id  <SUBTASK_ID>",          "-i",   "Search for that specific subtask by its ID")                           \
-    X("subtask", "list", "--priority \"<PRIORITY>\"",   "-p",   "Fetch all subtasks by its priority")                                   \
-    X("subtask", "list", "--status \"<STATUS>\"",       "-s",   "Fetch all subtasks by its status")                                     \
+#define TODO_SUBCOMMANDS_FLAGS                                                                                                              \
+    X("subtask", "add",     "--done",                      "-d",   "Declare an subtask as already done")                                    \
+    X("subtask", "list",    "--all <TASK_ID>",             "-a",   "Show every single subtask related to that specific task")               \
+    X("subtask", "list",    "--id  <SUBTASK_ID>",          "-i",   "Search for that specific subtask by its ID")                            \
+    X("subtask", "list",    "--priority \"<PRIORITY>\"",   "-p",   "Fetch all subtasks by its priority")                                    \
+    X("subtask", "list",    "--status \"<STATUS>\"",       "-s",   "Fetch all subtasks by its status")                                      \
+    X("inline",  "query",   "--transfer",                  "-T",   "Transfer all queried commentaries into a temporary object file")        \
+    X("inline",  "query",   "--list",                      "-l",   "List all queried commentaries")     
 
 #define TODO_FLAGS                                                                              \
     X("init",    "--all",        "-a",      "Initialize full Todofile repo")                    \
@@ -67,6 +72,8 @@
     #define LINK_FILE       ".todo\\link\\link.bin"
     #define LINK_COUNT      ".todo\\link\\count.bin"
 
+    #define REF_DIRECTORY   ".todo\\ref"
+
     #define TODO_FILE                   ".\\Todofile"
     #define UNREADABLE_TODO_FILE        ".todo\\Todofile"
 #else
@@ -80,6 +87,8 @@
 
     #define LINK_FILE       ".todo/link/LINK.bin"
     #define LINK_COUNT      ".todo/link/COUNT.bin"
+
+    #define REF_DIRECTORY   ".todo/ref"
 
     #define TODO_FILE                   "./Todofile\0"
     #define UNREADABLE_TODO_FILE        ".todo/Todofile"

@@ -197,6 +197,7 @@ Boolean values accept `true`/`false`, `on`/`off`, and `1`/`0`.
 | --- | --- | --- |
 | `nosql` | `false` | Selects JSON (`true`) or SQLite (`false`) for subtasks. |
 | `readable` | `true` | Stored configuration option for task readability. |
+| `editable` | `true` | Stored configuration option for task edition control. |
 | `checkable` | `true` | Stored configuration option for task checkboxes. |
 
 The `readable` and `checkable` values are currently stored but do not change

@@ -8,6 +8,7 @@
 #include "../../link/link.hpp"
 
 #include "helper.hpp"
+#include "../../utils/string.hpp"
 
 #include "subtasks/subtasks.hpp"
 #include "subtasks/subtask_sql.hpp"
@@ -33,6 +34,8 @@
 
 #define BASIC_CONFIG "checkable=true\nreadable=true\neditable=true\nnosql=false\n"
 #define BASIC_CONFIG_LINE "checkable=true\nreadable=true\neditable=true\nnosql={}\n"
+
+#define PLACEHOLDER "..."
 
 #define CHECK_FLAGS_SIZE(expected)  \
     if (flags.size() < expected) throw todo_file_exception("Too few arguments")
@@ -226,6 +229,7 @@ namespace TODO {
                 fs::is_directory(root / "config") &&
                 fs::is_directory(root / "logs") &&
                 fs::is_directory(root / "link") &&
+                fs::is_directory(root / "ref") &&
                 fs::is_regular_file(TODO_FILE) &&
                 fs::is_regular_file(CONFIG_FILE) &&
                 fs::is_regular_file(COUNTER_FILE) &&
@@ -966,6 +970,7 @@ namespace TODO {
             ensure_directory(CONFIG_DIRECTORY);
             ensure_directory(LOG_DIRECTORY);
             ensure_directory(PRIORITY_DIRECTORY);
+            ensure_directory(REF_DIRECTORY);
             ensure_file(CONFIG_FILE, BASIC_CONFIG);
             ensure_file(COUNTER_FILE, "0");
 
@@ -1479,9 +1484,12 @@ namespace TODO {
 
         void fetch_priority(priority p) {
             const auto& pt = lfh.read_links();
-            
+            std::size_t count = 0;
+
             for (std::size_t i = 0; i < pt.size(); ++i) {
                 if (pt[i].priority == (int) p) {
+                    ++count;
+
                     const auto& t = this->read_tasks();
                     TodoTask T;
 
@@ -1497,6 +1505,8 @@ namespace TODO {
                 }
             }
 
+            if (count <= 0) 
+                dialog::report(report_types::info, "No task with '%s' priority was found.", stringfy(p).c_str());
             dialog::report(report_types::success, "All tasks successfully shown.");
         }
 
@@ -1507,7 +1517,7 @@ namespace TODO {
         // todo fetch 5             --> mostra a task 5
         bool run() override {
             if (has_flag(flags, "--priority", "-p")) {
-                CHECK_FLAGS_SIZE(3);
+                CHECK_FLAGS_SIZE(2);
                 
                 fetch_priority(to_priority(flags[1]));
             } 
@@ -1550,4 +1560,157 @@ namespace TODO {
             return true;
         }
     }; 
+
+    class inline_command: public basic_command {
+    private:
+        struct DTOTodo {
+            bool is_commentary;
+            std::string raw_text;
+
+            std::string task;
+
+            std::size_t line_num;
+            std::size_t column_num;
+        };
+
+        std::vector<DTOTodo> query_commentaries(const char* path) {
+            auto dtos = std::vector<DTOTodo>();
+
+            WFile f = WFile(path);
+            const auto& content = f.read_lines();
+            
+            try {
+                std::size_t count = 0;
+
+                for (count = 0; count < content.size(); ++count) {
+                    DTOTodo dto;
+
+                    bool shouldRegister = false;
+                    std::string obj = content[count];
+
+                    for (std::size_t i = 0; i < content[count].size(); ++i) {
+                        if (obj.starts_with("//")) obj.erase(0, 2);
+                        if (obj.starts_with("#"))  obj.erase(0, 1);
+                        
+                        obj = trim(obj);
+                        std::string placeholder = toupper(obj);
+
+                        if (placeholder.starts_with("TODO:")) {
+                            dto.column_num = i + 1;
+                            shouldRegister = true;
+                            break;
+                        }
+                    }
+
+                    if (shouldRegister) {
+                        auto T = trim(obj.erase(0, 5));
+                        capitalize(&T);
+
+                        dto.is_commentary   = true; 
+                        dto.raw_text        = obj;
+                        dto.task            = T;
+                        dto.line_num        = count + 1;
+                        
+                        dtos.push_back(dto);
+                    }
+                }
+            } catch (const std::exception&) {}
+
+            return dtos;
+        }
+
+        std::string dtof() {
+            std::string date = get_date();
+            std::string path = REF_DIRECTORY;
+            path += '\\' + date;
+            path += ".temp";
+            
+            return path;
+        }
+
+        bool query() {
+            CHECK_FLAGS_SIZE(2);
+
+            const char* path = flags[1].c_str();
+            const auto DTOS = query_commentaries(path);
+
+            bool transfer = has_flag(flags, "--transfer", "-T");
+            bool list     = has_flag(flags, "--list", "-l");
+
+            if (list)
+                for (const auto& obj: DTOS)
+                    dialog::report(report_types::log, "%s:%d:%d %s -> %s", path, obj.line_num, obj.column_num, obj.raw_text.c_str(), obj.task.c_str());
+
+            if (transfer) {
+                if (DTOS.size() <= 0) {
+                    dialog::report(report_types::warn, "Query didn't returned any value. Transfer object creation cancelled.");
+                    goto end;
+                }
+
+                WFile f;
+
+                std::string date = get_date();
+                std::string tmp_path = REF_DIRECTORY;
+                tmp_path += '\\' + date;
+                tmp_path += ".temp";
+
+                f.create(tmp_path.c_str());
+                f = WFile(tmp_path.c_str());
+
+                for (const auto& obj: DTOS) 
+                    f.append(std::string(obj.task + ", in file \'" + path + "\'").c_str());
+
+                dialog::report(report_types::info, "Instanciated an object for transfering data. Use `todo inline transfer` and confirm to continue with this action.");
+            }
+        
+        end:
+            dialog::report(report_types::success, "File `%s` query was a success!", path);
+            return true;
+        }
+
+        bool transfer() {   
+            std::string path = dtof();
+
+            WFile f = WFile(path.c_str());
+            const auto lines = f.read_lines();
+
+            std::vector<TodoTask> tasks = this->read_tasks();
+            for (const auto& l: lines) {
+                if (l == " " || l == "" || l.empty()) continue;
+
+                TodoTask task = TodoTask{ 
+                    checked: false,
+                    title: l
+                };
+
+                tasks.push_back(task);
+            }
+
+            this->write_tasks(tasks);
+            TODOConfig().increment_count();
+
+            f.recycle(path.c_str());
+            
+        end:
+            dialog::report(report_types::success, "Transfer completed with success!");
+            return true;
+        }
+    
+    public:
+        using basic_command::basic_command;
+
+        /*
+            Sintaxe: 
+            - todo inline <sub> <args|flags>
+        */
+        bool run() override {   
+            CHECK_FLAGS_SIZE(1);
+            auto subcmd = flags[0];
+
+            return 
+                (subcmd == "query") 
+                    ? query() 
+                    : transfer();
+        }
+    };
 }
