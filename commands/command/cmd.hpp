@@ -1832,7 +1832,24 @@ namespace TODO {
         }
 
         bool transfer() {   
-            std::string path = dtof();
+            std::string path    = dtof();
+            bool clear_residual = has_flag(flags, "--clear-residual", "-C");
+
+            WFile file;
+            if (clear_residual) {
+                for (const auto& entry: fs::directory_iterator(REF_DIRECTORY))
+                    if (entry.is_regular_file())
+                        file.recycle(
+                            entry.path().string().c_str()
+                        );
+
+                dialog::report(report_types::info, "Residual cleaned successfully!");
+            }
+
+            if (!fs::exists(path)) {
+                dialog::report(report_types::error, "Transfer file does not exists or is renamed!", path.c_str());
+                return false;
+            }
 
             WFile f = WFile(path.c_str());
             const auto lines = f.read_lines();
@@ -1853,6 +1870,7 @@ namespace TODO {
             TODOConfig().write_count(tasks.size());
 
             f.recycle(path.c_str());
+
             
         end:
             dialog::report(report_types::success, "Transfer completed with success!");

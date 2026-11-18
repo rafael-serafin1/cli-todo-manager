@@ -35,7 +35,8 @@
     X("subtask", "list",    "--priority \"<PRIORITY>\"",   "-p",   "Fetch all subtasks by its priority")                                    \
     X("subtask", "list",    "--status \"<STATUS>\"",       "-s",   "Fetch all subtasks by its status")                                      \
     X("inline",  "query",   "--transfer",                  "-T",   "Transfer all queried commentaries into a temporary object file")        \
-    X("inline",  "query",   "--list",                      "-l",   "List all queried commentaries")     
+    X("inline",  "query",   "--list",                      "-l",   "List all queried commentaries")                                         \
+    X("inline",  "transfer","--clear-residual",            "-C",   "Clear residual object transfer files")                                  
 
 #define TODO_FLAGS                                                                              \
     X("init",    "--all",        "-a",      "Initialize full Todofile repo")                    \
