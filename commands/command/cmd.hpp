@@ -8,7 +8,9 @@
 #include "../../link/link.hpp"
 
 #include "helper.hpp"
+
 #include "../../utils/string.hpp"
+#include "../../utils/ttypes.hpp"
 
 #include "subtasks/subtasks.hpp"
 #include "subtasks/subtask_sql.hpp"
@@ -190,9 +192,7 @@ namespace TODO {
         static unsigned int parse_task_number(const std::string& text) {
             unsigned int number = 0;
 
-            const auto result = std::from_chars(
-                text.data(), text.data() + text.size(), number
-            );
+            const auto result = std::from_chars(text.data(), text.data() + text.size(), number);
 
             if (text.empty() || result.ec != std::errc{} ||
                     result.ptr != text.data() + text.size() || number == 0) {
@@ -489,12 +489,61 @@ namespace TODO {
     };
 
     class remove_command: public basic_command {
+    private:
+        bool range() {
+            if (flags[0] != "range") {
+                dialog::report(report_types::error, "Unexpected argument: '%s'", flags[0].c_str());
+                return false;
+            }
+            CHECK_FLAGS_SIZE(3);
+
+            unsigned int start = parse_task_number(flags[1]);
+            unsigned int end   = parse_task_number(flags[2]);
+
+            if (start > end)
+                std::swap(start, end);
+
+            const unsigned int distance = (start - end);
+
+            TODOConfig config;
+            const std::size_t count = config.read_count();
+
+            if (start == 0 || end > count)
+                throw todo_file_exception("Task number does not exist.");
+
+            auto tasks = read_tasks();
+            validate_task_count(tasks, count);
+
+            std::string holder = std::string("Removed tasks in range of ");
+            holder += std::to_string(start) + " to " + std::to_string(end) + " from Todofile, as tasks were:";
+            
+            const std::size_t first = start - 1;
+            const std::size_t last = end; 
+
+            for (std::size_t i = first; i < last; ++i) {
+                holder += " {\"" + tasks[i].title + "\"} ";
+                config.decrement_count();
+            }
+
+            tasks.erase(tasks.begin() + first, tasks.begin() + last);
+            write_tasks(tasks);
+            
+            const std::string message = logger.log_message(holder);
+            this->logger.generate(message);
+
+            dialog::report(report_types::success, "Removed task from %u to %u.", start, end);
+            return true;
+        }
+
     public:
         using basic_command::basic_command;
 
         bool run() override {
-            if (flags.size() != 1)
+            if (flags.size() < 1)
                 throw todo_file_exception("Usage: todo remove <task number>");
+
+            if (flags.size() > 1) 
+                return range();
 
             const unsigned int number = parse_task_number(flags.front());
             std::string holder = std::string("Removed task '");
@@ -545,6 +594,7 @@ namespace TODO {
         void specify_command(const std::string& command) {
             cmds_with_subcmd.push_back("subtask");
             cmds_with_subcmd.push_back("inline");
+            cmds_with_subcmd.push_back("remove");
 
             bool found = false;
 
@@ -1490,17 +1540,25 @@ namespace TODO {
         using basic_command::basic_command;
 
         bool run() override {
-            CHECK_FLAGS_SIZE(2);
-            int id = std::stoi(flags[0]);
+            try {
+                CHECK_FLAGS_SIZE(2);
+                int id = std::stoi(flags[0]);
+    
+                if (!verify(&id))
+                    return false;
+    
+                const auto priority = to_priority(flags[1]);
+    
+                new_priority(priority, id);
+                return true;
+            } 
+            catch (const todo_file_exception& ex) {
+                dialog::report(report_types::error, "%s", ex.what());
 
-            if (!verify(&id))
+                dialog::report(report_types::info, "Avaliable priorities:\n- none\n- low\n- medium\n- high\n- urgent\n------------------------------");
                 return false;
+            }
 
-            const auto priority = to_priority(flags[1]);
-
-            new_priority(priority, id);
-
-            return true;
         }
     };
 
@@ -1599,49 +1657,120 @@ namespace TODO {
             std::size_t line_num;
             std::size_t column_num;
         };
-
+        
+        // GRANDÃO
         std::vector<DTOTodo> query_commentaries(const char* path) {
             auto dtos = std::vector<DTOTodo>();
 
             WFile f = WFile(path);
             const auto& content = f.read_lines();
-            
-            try {
-                std::size_t count = 0;
+            bool inside_block_comment = false;
 
-                for (count = 0; count < content.size(); ++count) {
-                    DTOTodo dto;
+            for (std::size_t count = 0; count < content.size(); ++count) {
+                const std::string& line = content[count];
+                const std::size_t first_nonspace = line.find_first_not_of(" \t\r\n\f\v");
 
-                    bool shouldRegister = false;
-                    std::string obj = content[count];
+                std::size_t position = 0;
+                char quote = '\0';
 
-                    for (std::size_t i = 0; i < content[count].size(); ++i) {
-                        if (obj.starts_with("//")) obj.erase(0, 2);
-                        if (obj.starts_with("#"))  obj.erase(0, 1);
-                        
-                        obj = trim(obj);
-                        std::string placeholder = toupper(obj);
+                auto add_todo = 
+                    [&](std::size_t body_start, const std::size_t body_end) {
+                        while (body_start < body_end and std::isspace(static_cast<unsigned char>(line[body_start])))
+                            ++body_start;
 
-                        if (placeholder.starts_with("TODO:")) {
-                            dto.column_num = i + 1;
-                            shouldRegister = true;
-                            break;
+                        if (body_start >= body_end)
+                            return;
+
+                        const std::string comment = line.substr(body_start, body_end - body_start);
+                        const std::size_t todo_pos = toupper(comment).find("TODO:");
+
+                        if (todo_pos == std::string::npos)
+                            return;
+
+                        std::string task = trim(comment.substr(todo_pos + 5));
+
+                        if (task.empty())
+                            return;
+
+                        capitalize(&task);
+
+                        dtos.push_back(DTOTodo{
+                            true,
+                            line.substr(line.find("TODO:")),
+                            task,
+                            count + 1,
+                            body_start + todo_pos + 1
+                        });
+                    };
+
+                while (position < line.size()) {
+                    if (inside_block_comment) {
+                        std::size_t body_start = position;
+
+                        if (position == 0 && first_nonspace != std::string::npos) {
+                            body_start = first_nonspace;
+                            if (line[body_start] == '*')
+                                ++body_start;
                         }
+
+                        const std::size_t close_pos = line.find("*/", position);
+                        const std::size_t body_end = close_pos == std::string::npos
+                            ? line.size()
+                            : close_pos;
+
+                        add_todo(body_start, body_end);
+
+                        if (close_pos == std::string::npos)
+                            break;
+
+                        inside_block_comment = false;
+                        position = close_pos + 2;
+
+                        continue;
                     }
 
-                    if (shouldRegister) {
-                        auto T = trim(obj.erase(0, 5));
-                        capitalize(&T);
+                    if (quote != '\0') {
+                        if (line[position] == '\\') {
+                            position += position + 1 < line.size() ? 2 : 1;
+                            continue;
+                        }
 
-                        dto.is_commentary   = true; 
-                        dto.raw_text        = obj;
-                        dto.task            = T;
-                        dto.line_num        = count + 1;
-                        
-                        dtos.push_back(dto);
+                        if (line[position] == quote)
+                            quote = '\0';
+
+                        ++position;
+                        continue;
                     }
+
+                    if (line[position] == '"' or line[position] == '\'') {
+                        quote = line[position++];
+                        continue;
+                    }
+
+                    if (line.compare(position, 2, "//") == 0) {
+                        add_todo(position + 2, line.size());
+                        break;
+                    }
+
+                    if (line.compare(position, 2, "/*") == 0) {
+                        inside_block_comment = true;
+                        position += 2;
+                        continue;
+                    }
+
+                    if (position == first_nonspace && line[position] == '#') {
+                        add_todo(position + 1, line.size());
+                        break;
+                    }
+
+                    if (position == first_nonspace && line.compare(position, 2, "--") == 0) {
+                        add_todo(position + 2, line.size());
+                        break;
+                    }
+
+                    ++position;
                 }
-            } catch (const std::exception&) {}
+            }
 
             return dtos;
         }
@@ -1657,21 +1786,29 @@ namespace TODO {
 
         bool query() {
             CHECK_FLAGS_SIZE(2);
+            std::string path = flags[1].c_str();
 
-            const char* path = flags[1].c_str();
-            const auto DTOS = query_commentaries(path);
+            if (!fs::exists(path))
+                throw todo_file_exception("Invalid file path.");
+
+            const auto DTOS = query_commentaries(path.c_str());
+
+            if (DTOS.empty()) {
+                dialog::report(report_types::warn, "Query returned nothing.");
+                return true;
+            }
 
             bool transfer = has_flag(flags, "--transfer", "-T");
             bool list     = has_flag(flags, "--list", "-l");
 
             if (list)
                 for (const auto& obj: DTOS)
-                    dialog::report(report_types::log, "%s:%d:%d %s -> %s", path, obj.line_num, obj.column_num, obj.raw_text.c_str(), obj.task.c_str());
+                    dialog::report(report_types::log, "%s:%zu:%zu %s -> %s", path.c_str(), obj.line_num, obj.column_num, obj.raw_text.c_str(), obj.task.c_str());
 
             if (transfer) {
                 if (DTOS.size() <= 0) {
                     dialog::report(report_types::warn, "Query didn't returned any value. Transfer object creation cancelled.");
-                    goto end;
+                    return false;
                 }
 
                 WFile f;
@@ -1685,13 +1822,12 @@ namespace TODO {
                 f = WFile(tmp_path.c_str());
 
                 for (const auto& obj: DTOS) 
-                    f.append(std::string(obj.task + ", in file \'" + path + "\'").c_str());
+                    f.append(std::string(obj.task + ", from file \'" + path + "\'").c_str());
 
                 dialog::report(report_types::info, "Instanciated an object for transfering data. Use `todo inline transfer` and confirm to continue with this action.");
             }
-        
-        end:
-            dialog::report(report_types::success, "File `%s` query was a success!", path);
+
+            dialog::report(report_types::success, "File `%s` query was a success!", path.c_str());
             return true;
         }
 
@@ -1714,7 +1850,9 @@ namespace TODO {
             }
 
             this->write_tasks(tasks);
-            TODOConfig().increment_count();
+
+            for (std::size_t i = 0; i < tasks.size(); ++i)
+                TODOConfig().increment_count();
 
             f.recycle(path.c_str());
             

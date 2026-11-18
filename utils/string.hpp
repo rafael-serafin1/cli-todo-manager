@@ -38,7 +38,12 @@ void capitalize(std::string* str) {
     if (str->size() <= 0)
         return;
 
-    (*str)[0] = toupper((*str)[0]);
+    (*str)[0] = toupper((*str)[0]);                 // TODO: alguma coisa para fazer nessa função
 }
 
-// TODO: trim all whitespaces in a string
+// TODO: trim all whitespaces in a string.
+// alguma coisa relacionada ao código. TODO: opa eu sou uma tarefa
+
+/*
+TODO: algo a mais....
+*/
